@@ -1,7 +1,6 @@
 -- Addon-level preset definitions.
 -- You can add more presets here and ship them with the addon.
 -- Each preset supports partial or full cvar lists.
-
 return {
 	defaultPresetName = "Default",
 	presets = {

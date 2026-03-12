@@ -1,6 +1,5 @@
 g_VR = g_VR or {}
 vrmod = vrmod or {}
-
 local cvBindMode = CreateClientConVar("vrmod_brushclimb_bind_mode", "0", true, false, "0=Grip+Trigger, 1=Grip, 2=Trigger", 0, 2)
 local cvEnable = CreateClientConVar("vrmod_brushclimb_enable", "1", true, false, "Enable VRMod brush climbing", 0, 1)
 local cvGrabDistance = CreateClientConVar("vrmod_brushclimb_grab_distance", "22", true, false, "Brush grab trace range", 4, 48)
@@ -28,15 +27,15 @@ local cvWallrunLookMaxDot = CreateClientConVar("vrmod_wallrun_look_max_dot", "0.
 local cvWallrunSoundEnable = CreateClientConVar("vrmod_wallrun_sounds", "1", true, false, "Play wallrun step sounds", 0, 1)
 local cvWallrunSoundVolume = CreateClientConVar("vrmod_wallrun_sound_volume", "0.75", true, false, "Wallrun sound volume", 0, 1)
 local cvWallrunSoundInterval = CreateClientConVar("vrmod_wallrun_sound_interval", "0.18", true, false, "Seconds between wallrun step sounds", 0.05, 1)
-local cvAllowWalls      = CreateClientConVar("vrmod_brushclimb_allow_walls",      "1", true, false, "Allow grabbing wall surfaces (server must also permit)", 0, 1)
-local cvAllowCeilings   = CreateClientConVar("vrmod_brushclimb_allow_ceilings",   "1", true, false, "Allow grabbing ceiling surfaces (server must also permit)", 0, 1)
-local cvAllowLedges     = CreateClientConVar("vrmod_brushclimb_allow_ledges",     "1", true, false, "Allow grabbing ledge surfaces (server must also permit)", 0, 1)
-local cvAllowFloor      = CreateClientConVar("vrmod_brushclimb_allow_floors",     "1", true, false, "Allow grabbing floor surfaces (server must also permit)", 0, 1)
-local cvAllowDoors      = CreateClientConVar("vrmod_brushclimb_allow_doors",      "0", true, false, "Allow grabbing door entities (server must also permit)", 0, 1)
-local cvAllowPushable   = CreateClientConVar("vrmod_brushclimb_allow_pushable",   "0", true, false, "Allow grabbing func_pushable entities (server must also permit)", 0, 1)
+local cvAllowWalls = CreateClientConVar("vrmod_brushclimb_allow_walls", "1", true, false, "Allow grabbing wall surfaces (server must also permit)", 0, 1)
+local cvAllowCeilings = CreateClientConVar("vrmod_brushclimb_allow_ceilings", "1", true, false, "Allow grabbing ceiling surfaces (server must also permit)", 0, 1)
+local cvAllowLedges = CreateClientConVar("vrmod_brushclimb_allow_ledges", "1", true, false, "Allow grabbing ledge surfaces (server must also permit)", 0, 1)
+local cvAllowFloor = CreateClientConVar("vrmod_brushclimb_allow_floors", "1", true, false, "Allow grabbing floor surfaces (server must also permit)", 0, 1)
+local cvAllowDoors = CreateClientConVar("vrmod_brushclimb_allow_doors", "0", true, false, "Allow grabbing door entities (server must also permit)", 0, 1)
+local cvAllowPushable = CreateClientConVar("vrmod_brushclimb_allow_pushable", "0", true, false, "Allow grabbing func_pushable entities (server must also permit)", 0, 1)
 local cvAllowToggleable = CreateClientConVar("vrmod_brushclimb_allow_toggleable", "0", true, false, "Allow grabbing toggleable brush entities (server must also permit)", 0, 1)
-local cvAllowLadders    = CreateClientConVar("vrmod_brushclimb_allow_ladders",    "1", true, false, "Allow grabbing ladder surfaces (always bypasses surface type filters)", 0, 1)
-local cvSlideEnable     = CreateClientConVar("vrmod_slide_enable",      "1",  true, false, "Enable VRMod sliding", 0, 1)
+local cvAllowLadders = CreateClientConVar("vrmod_brushclimb_allow_ladders", "1", true, false, "Allow grabbing ladder surfaces (always bypasses surface type filters)", 0, 1)
+local cvSlideEnable = CreateClientConVar("vrmod_slide_enable", "1", true, false, "Enable VRMod sliding", 0, 1)
 local cvSlideHeadHeight = CreateClientConVar("vrmod_slide_head_height", "40", true, false, "HMD height above origin (units) at which you count as low enough to slide", 4, 120)
 local cvSlideSoundEnable = CreateClientConVar("vrmod_slide_sounds", "1", true, false, "Play slide sounds", 0, 1)
 local cvSlideSoundVolume = CreateClientConVar("vrmod_slide_sound_volume", "0.75", true, false, "Slide sound volume", 0, 1)
@@ -52,77 +51,26 @@ local cvArmSwingJumpCooldown = CreateClientConVar("vrmod_brushclimb_armswing_jum
 local presetModule = include("vrmod_brush_climbing/client/presets.lua") or {}
 local defaultPresetName = isstring(presetModule.defaultPresetName) and string.Trim(presetModule.defaultPresetName) ~= "" and presetModule.defaultPresetName or "Default"
 local cvSelectedPreset = CreateClientConVar("vrmod_brushclimb_selected_preset", defaultPresetName, true, false, "Last selected local VRModClimbing preset")
-
 local PRESET_DATA_DIR = "vrmod_climbing"
 local LEGACY_PRESET_DATA_PATH = "vrmod_brushclimb/presets.json"
-local PRESET_CVARS = {
-	"vrmod_brushclimb_bind_mode",
-	"vrmod_brushclimb_enable",
-	"vrmod_brushclimb_grab_distance",
-	"vrmod_brushclimb_launch_mult",
-	"vrmod_brushclimb_launch_min",
-	"vrmod_brushclimb_launch_max",
-	"vrmod_brushclimb_sounds",
-	"vrmod_brushclimb_sound_volume",
-	"vrmod_brushclimb_debug",
-	"vrmod_brushclimb_debug_text",
-	"vrmod_brushclimb_hand_inset",
-	"vrmod_brushclimb_wall_push_dist",
-	"vrmod_brushclimb_camera_collision",
-	"vrmod_brushclimb_palm_offset_forward",
-	"vrmod_brushclimb_palm_offset_right",
-	"vrmod_brushclimb_palm_offset_up",
-	"vrmod_brushclimb_palm_offset_forward_right",
-	"vrmod_brushclimb_palm_offset_right_right",
-	"vrmod_brushclimb_palm_offset_up_right",
-	"vrmod_wallrun_hand_range",
-	"vrmod_wallrun_bind_mode",
-	"vrmod_wallrun_cooldown",
-	"vrmod_wallrun_air_regen",
-	"vrmod_wallrun_look_max_dot",
-	"vrmod_wallrun_sounds",
-	"vrmod_wallrun_sound_volume",
-	"vrmod_wallrun_sound_interval",
-	"vrmod_brushclimb_allow_walls",
-	"vrmod_brushclimb_allow_ceilings",
-	"vrmod_brushclimb_allow_ledges",
-	"vrmod_brushclimb_allow_floors",
-	"vrmod_brushclimb_allow_doors",
-	"vrmod_brushclimb_allow_pushable",
-	"vrmod_brushclimb_allow_toggleable",
-	"vrmod_brushclimb_allow_ladders",
-	"vrmod_slide_enable",
-	"vrmod_slide_head_height",
-	"vrmod_slide_sounds",
-	"vrmod_slide_sound_volume",
-	"vrmod_brushclimb_assist_enable",
-	"vrmod_brushclimb_assist_strength",
-	"vrmod_brushclimb_doorbash_enable",
-	"vrmod_brushclimb_doorbash_speed",
-	"vrmod_brushclimb_doorbash_range",
-	"vrmod_brushclimb_doorbash_cooldown",
-	"vrmod_brushclimb_armswing_jump_enable",
-	"vrmod_brushclimb_armswing_jump_speed",
-	"vrmod_brushclimb_armswing_jump_cooldown",
-}
-
+local PRESET_CVARS = {"vrmod_brushclimb_bind_mode", "vrmod_brushclimb_enable", "vrmod_brushclimb_grab_distance", "vrmod_brushclimb_launch_mult", "vrmod_brushclimb_launch_min", "vrmod_brushclimb_launch_max", "vrmod_brushclimb_sounds", "vrmod_brushclimb_sound_volume", "vrmod_brushclimb_debug", "vrmod_brushclimb_debug_text", "vrmod_brushclimb_hand_inset", "vrmod_brushclimb_wall_push_dist", "vrmod_brushclimb_camera_collision", "vrmod_brushclimb_palm_offset_forward", "vrmod_brushclimb_palm_offset_right", "vrmod_brushclimb_palm_offset_up", "vrmod_brushclimb_palm_offset_forward_right", "vrmod_brushclimb_palm_offset_right_right", "vrmod_brushclimb_palm_offset_up_right", "vrmod_wallrun_hand_range", "vrmod_wallrun_bind_mode", "vrmod_wallrun_cooldown", "vrmod_wallrun_air_regen", "vrmod_wallrun_look_max_dot", "vrmod_wallrun_sounds", "vrmod_wallrun_sound_volume", "vrmod_wallrun_sound_interval", "vrmod_brushclimb_allow_walls", "vrmod_brushclimb_allow_ceilings", "vrmod_brushclimb_allow_ledges", "vrmod_brushclimb_allow_floors", "vrmod_brushclimb_allow_doors", "vrmod_brushclimb_allow_pushable", "vrmod_brushclimb_allow_toggleable", "vrmod_brushclimb_allow_ladders", "vrmod_slide_enable", "vrmod_slide_head_height", "vrmod_slide_sounds", "vrmod_slide_sound_volume", "vrmod_brushclimb_assist_enable", "vrmod_brushclimb_assist_strength", "vrmod_brushclimb_doorbash_enable", "vrmod_brushclimb_doorbash_speed", "vrmod_brushclimb_doorbash_range", "vrmod_brushclimb_doorbash_cooldown", "vrmod_brushclimb_armswing_jump_enable", "vrmod_brushclimb_armswing_jump_speed", "vrmod_brushclimb_armswing_jump_cooldown",}
 local presetStore = {
 	custom = {},
 }
 
 local builtinPresets = {}
 local MIRRORED_PERMISSION_CVARS = {
-	vrmod_brushclimb_allow_walls      = "sv_vrmod_brushclimb_allow_walls",
-	vrmod_brushclimb_allow_ceilings   = "sv_vrmod_brushclimb_allow_ceilings",
-	vrmod_brushclimb_allow_ledges     = "sv_vrmod_brushclimb_allow_ledges",
-	vrmod_brushclimb_allow_floors     = "sv_vrmod_brushclimb_allow_floors",
-	vrmod_brushclimb_allow_doors      = "sv_vrmod_brushclimb_allow_doors",
-	vrmod_brushclimb_allow_pushable   = "sv_vrmod_brushclimb_allow_pushable",
+	vrmod_brushclimb_allow_walls = "sv_vrmod_brushclimb_allow_walls",
+	vrmod_brushclimb_allow_ceilings = "sv_vrmod_brushclimb_allow_ceilings",
+	vrmod_brushclimb_allow_ledges = "sv_vrmod_brushclimb_allow_ledges",
+	vrmod_brushclimb_allow_floors = "sv_vrmod_brushclimb_allow_floors",
+	vrmod_brushclimb_allow_doors = "sv_vrmod_brushclimb_allow_doors",
+	vrmod_brushclimb_allow_pushable = "sv_vrmod_brushclimb_allow_pushable",
 	vrmod_brushclimb_allow_toggleable = "sv_vrmod_brushclimb_allow_toggleable",
 }
+
 local MIRRORED_PERMISSION_SERVER_CVARS = {}
 local mirroredClientSyncMute = {}
-
 for clientCvarName, serverCvarName in pairs(MIRRORED_PERMISSION_CVARS) do
 	MIRRORED_PERMISSION_SERVER_CVARS[serverCvarName] = clientCvarName
 end
@@ -135,15 +83,11 @@ end
 local function SetMirroredClientPermission(cvarName, enabled)
 	local cv = GetConVar(cvarName)
 	if not cv then return end
-
 	local targetValue = enabled and "1" or "0"
 	if cv:GetString() == targetValue then return end
-
 	mirroredClientSyncMute[cvarName] = true
 	RunConsoleCommand(cvarName, targetValue)
-	timer.Simple(0, function()
-		mirroredClientSyncMute[cvarName] = nil
-	end)
+	timer.Simple(0, function() mirroredClientSyncMute[cvarName] = nil end)
 end
 
 local function MirrorClientPermissionToServer(clientCvarName, enabled)
@@ -163,21 +107,15 @@ for clientCvarName in pairs(MIRRORED_PERMISSION_CVARS) do
 end
 
 local function NotifyPreset(messageText, notifyType)
-	if notification and notification.AddLegacy then
-		notification.AddLegacy(messageText, notifyType or NOTIFY_GENERIC, 3)
-	end
-	if surface and surface.PlaySound then
-		surface.PlaySound("buttons/button15.wav")
-	end
+	if notification and notification.AddLegacy then notification.AddLegacy(messageText, notifyType or NOTIFY_GENERIC, 3) end
+	if surface and surface.PlaySound then surface.PlaySound("buttons/button15.wav") end
 end
 
 local function SanitizePresetName(name)
 	name = string.Trim(tostring(name or ""))
 	name = string.gsub(name, "[/\\:*?\"<>|]", "_")
 	name = string.gsub(name, "%s+", " ")
-	if #name > 48 then
-		name = string.sub(name, 1, 48)
-	end
+	if #name > 48 then name = string.sub(name, 1, 48) end
 	return name
 end
 
@@ -186,9 +124,7 @@ local function NormalizePresetValues(values)
 	local out = {}
 	for i = 1, #PRESET_CVARS do
 		local cvarName = PRESET_CVARS[i]
-		if values[cvarName] ~= nil then
-			out[cvarName] = tostring(values[cvarName])
-		end
+		if values[cvarName] ~= nil then out[cvarName] = tostring(values[cvarName]) end
 	end
 	return out
 end
@@ -198,9 +134,7 @@ local function CaptureCurrentPresetValues()
 	for i = 1, #PRESET_CVARS do
 		local cvarName = PRESET_CVARS[i]
 		local cv = GetConVar(cvarName)
-		if cv then
-			values[cvarName] = cv:GetString()
-		end
+		if cv then values[cvarName] = cv:GetString() end
 	end
 	return values
 end
@@ -214,12 +148,12 @@ end
 local function SavePresetFile(name, values)
 	local path, safeName = GetPresetFilePath(name)
 	if not path then return false end
-
 	file.CreateDir(PRESET_DATA_DIR)
 	local payload = {
 		name = safeName,
 		values = NormalizePresetValues(values) or {},
 	}
+
 	file.Write(path, util.TableToJSON(payload, true))
 	return true
 end
@@ -229,25 +163,19 @@ local function BuildBuiltinPresets()
 	for i = 1, #PRESET_CVARS do
 		local cvarName = PRESET_CVARS[i]
 		local cv = GetConVar(cvarName)
-		if cv then
-			defaults[cvarName] = cv:GetDefault()
-		end
+		if cv then defaults[cvarName] = cv:GetDefault() end
 	end
 
 	builtinPresets[defaultPresetName] = defaults
-
 	local extra = istable(presetModule.presets) and presetModule.presets or {}
 	for presetName, presetValues in pairs(extra) do
 		local safeName = SanitizePresetName(presetName)
-		if safeName ~= "" then
-			builtinPresets[safeName] = NormalizePresetValues(presetValues) or {}
-		end
+		if safeName ~= "" then builtinPresets[safeName] = NormalizePresetValues(presetValues) or {} end
 	end
 end
 
 local function LoadPresetStore()
 	presetStore.custom = {}
-
 	local files = file.Find(PRESET_DATA_DIR .. "/*.txt", "DATA")
 	for i = 1, #files do
 		local fileName = files[i]
@@ -259,12 +187,8 @@ local function LoadPresetStore()
 				local inferredName = string.match(fileName, "^(.*)%.txt$") or fileName
 				local safeName = SanitizePresetName(parsed.name or inferredName)
 				local values = parsed.values
-				if not istable(values) then
-					values = parsed
-				end
-				if safeName ~= "" and builtinPresets[safeName] == nil then
-					presetStore.custom[safeName] = NormalizePresetValues(values) or {}
-				end
+				if not istable(values) then values = parsed end
+				if safeName ~= "" and builtinPresets[safeName] == nil then presetStore.custom[safeName] = NormalizePresetValues(values) or {} end
 			end
 		end
 	end
@@ -292,30 +216,28 @@ local function IsBuiltinPreset(name)
 end
 
 local function GetPresetValues(name)
-	if builtinPresets[name] then
-		return builtinPresets[name]
-	end
+	if builtinPresets[name] then return builtinPresets[name] end
 	return presetStore.custom[name]
 end
 
 local function GetPresetNames()
 	local builtinNames = {}
 	local customNames = {}
-
 	for name in pairs(builtinPresets) do
 		builtinNames[#builtinNames + 1] = name
 	end
+
 	for name in pairs(presetStore.custom) do
 		customNames[#customNames + 1] = name
 	end
 
 	table.sort(builtinNames, function(a, b) return string.lower(a) < string.lower(b) end)
 	table.sort(customNames, function(a, b) return string.lower(a) < string.lower(b) end)
-
 	local names = {}
 	for i = 1, #builtinNames do
 		names[#names + 1] = builtinNames[i]
 	end
+
 	for i = 1, #customNames do
 		names[#names + 1] = customNames[i]
 	end
@@ -325,9 +247,7 @@ end
 local function ApplyPresetValues(values)
 	if not istable(values) then return end
 	for cvarName, cvarValue in pairs(values) do
-		if GetConVar(cvarName) then
-			RunConsoleCommand(cvarName, tostring(cvarValue))
-		end
+		if GetConVar(cvarName) then RunConsoleCommand(cvarName, tostring(cvarValue)) end
 	end
 end
 
@@ -345,38 +265,26 @@ local function SaveCustomPreset(name, values)
 	if IsBuiltinPreset(safeName) then return false, "This preset name is reserved by addon defaults." end
 	local normalized = NormalizePresetValues(values) or {}
 	presetStore.custom[safeName] = normalized
-	if not SavePresetFile(safeName, normalized) then
-		return false, "Failed to save preset file."
-	end
+	if not SavePresetFile(safeName, normalized) then return false, "Failed to save preset file." end
 	return true, safeName
 end
 
 local function DeleteCustomPreset(name)
-	if IsBuiltinPreset(name) then
-		return false, "Built-in presets cannot be deleted."
-	end
-	if not presetStore.custom[name] then
-		return false, "Preset not found."
-	end
+	if IsBuiltinPreset(name) then return false, "Built-in presets cannot be deleted." end
+	if not presetStore.custom[name] then return false, "Preset not found." end
 	presetStore.custom[name] = nil
 	local path = GetPresetFilePath(name)
-	if path and file.Exists(path, "DATA") then
-		file.Delete(path)
-	end
+	if path and file.Exists(path, "DATA") then file.Delete(path) end
 	return true
 end
 
 BuildBuiltinPresets()
 LoadPresetStore()
-if not GetPresetValues(SanitizePresetName(cvSelectedPreset:GetString())) and GetPresetValues(defaultPresetName) then
-	cvSelectedPreset:SetString(defaultPresetName)
-end
+if not GetPresetValues(SanitizePresetName(cvSelectedPreset:GetString())) and GetPresetValues(defaultPresetName) then cvSelectedPreset:SetString(defaultPresetName) end
 local zeroVec = Vector(0, 0, 0)
 local zeroAng = Angle(0, 0, 0)
-
 local HAND_LEFT = 1
 local HAND_RIGHT = 2
-
 local hands = {
 	[HAND_LEFT] = {
 		handId = HAND_LEFT,
@@ -406,13 +314,35 @@ local state = {
 	lastUpdateFrame = -1,
 	attachLerpTime = 0.09,
 	hands = {
-		[HAND_LEFT] = {want = false, holding = false, anchorPos = nil, anchorNormal = nil, gripDown = false, triggerDown = false, debugTraces = nil, debugBest = nil, nearWall = false, secondaryGrabBlend = false},
-		[HAND_RIGHT] = {want = false, holding = false, anchorPos = nil, anchorNormal = nil, gripDown = false, triggerDown = false, debugTraces = nil, debugBest = nil, nearWall = false, secondaryGrabBlend = false},
+		[HAND_LEFT] = {
+			want = false,
+			holding = false,
+			anchorPos = nil,
+			anchorNormal = nil,
+			gripDown = false,
+			triggerDown = false,
+			debugTraces = nil,
+			debugBest = nil,
+			nearWall = false,
+			secondaryGrabBlend = false
+		},
+		[HAND_RIGHT] = {
+			want = false,
+			holding = false,
+			anchorPos = nil,
+			anchorNormal = nil,
+			gripDown = false,
+			triggerDown = false,
+			debugTraces = nil,
+			debugBest = nil,
+			nearWall = false,
+			secondaryGrabBlend = false
+		},
 	},
 	wallRunActive = false,
 	wallRunCooldownUntil = 0,
 	wallRunHand = nil,
-	wallRunWasOnGround = true,  -- tracks ground state for landing detection
+	wallRunWasOnGround = true, -- tracks ground state for landing detection
 	nextWallRunSoundAt = 0,
 	slideActive = false,
 	nextDoorBashAt = 0,
@@ -428,67 +358,15 @@ function vrmod.climbing()
 	}
 end
 
-local climbSounds = {
-	"vrclimb/handstep1.wav",
-	"vrclimb/handstep2.wav",
-	"vrclimb/handstep3.wav",
-	"vrclimb/handstep4.wav",
-}
-
-local releaseSounds = {
-	"vrclimb/release1.wav",
-	"vrclimb/release2.wav",
-	"vrclimb/release3.wav",
-	"vrclimb/release4.wav",
-	"vrclimb/release5.wav",
-}
-
-local wallrunSounds = {
-	"vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast1.wav",
-	"vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast2.wav",
-	"vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast3.wav",
-	"vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast5.wav",
-}
-
-local slideStartSounds = {
-	"vrclimb/slide/concrete/me_concrete_slide1.wav",
-	"vrclimb/slide/concrete/me_concrete_slide2.wav",
-	"vrclimb/slide/concrete/me_concrete_slide3.wav",
-	"vrclimb/slide/concrete/me_concrete_slide4.wav",
-}
+local climbSounds = {"vrclimb/handstep1.wav", "vrclimb/handstep2.wav", "vrclimb/handstep3.wav", "vrclimb/handstep4.wav",}
+local releaseSounds = {"vrclimb/release1.wav", "vrclimb/release2.wav", "vrclimb/release3.wav", "vrclimb/release4.wav", "vrclimb/release5.wav",}
+local wallrunSounds = {"vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast1.wav", "vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast2.wav", "vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast3.wav", "vrclimb/footsteps/concrete/me_footsteps_concrete_grit_wallrun_fast5.wav",}
+local slideStartSounds = {"vrclimb/slide/concrete/me_concrete_slide1.wav", "vrclimb/slide/concrete/me_concrete_slide2.wav", "vrclimb/slide/concrete/me_concrete_slide3.wav", "vrclimb/slide/concrete/me_concrete_slide4.wav",}
 local slideLoopSoundPath = "vrclimb/slide/me_footstep_concreteslideloop.wav"
 local slideLoopPatch = nil
-
-local traceDirsLocal = {
-	Vector(1, 0, 0), Vector(-1, 0, 0),
-	Vector(0, 1, 0), Vector(0, -1, 0),
-	Vector(0, 0, 1), Vector(0, 0, -1),
-	Vector(1, 1, 0), Vector(1, -1, 0), Vector(-1, 1, 0), Vector(-1, -1, 0),
-	Vector(1, 0, 1), Vector(1, 0, -1), Vector(-1, 0, 1), Vector(-1, 0, -1),
-	Vector(0, 1, 1), Vector(0, 1, -1), Vector(0, -1, 1), Vector(0, -1, -1),
-	Vector(1, 1, 1), Vector(1, 1, -1), Vector(1, -1, 1), Vector(1, -1, -1),
-	Vector(-1, 1, 1), Vector(-1, 1, -1), Vector(-1, -1, 1), Vector(-1, -1, -1),
-}
-
-local traceDirsWorld = {
-	Vector(0, 0, -1),
-	Vector(0, 0, 1),
-	Vector(1, 0, 0), Vector(-1, 0, 0),
-	Vector(0, 1, 0), Vector(0, -1, 0),
-	Vector(1, 1, 0):GetNormalized(), Vector(1, -1, 0):GetNormalized(),
-	Vector(-1, 1, 0):GetNormalized(), Vector(-1, -1, 0):GetNormalized(),
-	Vector(1, 0, -1):GetNormalized(), Vector(-1, 0, -1):GetNormalized(),
-	Vector(0, 1, -1):GetNormalized(), Vector(0, -1, -1):GetNormalized(),
-}
-
-local clientNudgeDirs = {
-	Vector(0, 0, 1), Vector(0, 0, -1),
-	Vector(1, 0, 0), Vector(-1, 0, 0),
-	Vector(0, 1, 0), Vector(0, -1, 0),
-	Vector(1, 1, 0):GetNormalized(), Vector(1, -1, 0):GetNormalized(),
-	Vector(-1, 1, 0):GetNormalized(), Vector(-1, -1, 0):GetNormalized(),
-}
-
+local traceDirsLocal = {Vector(1, 0, 0), Vector(-1, 0, 0), Vector(0, 1, 0), Vector(0, -1, 0), Vector(0, 0, 1), Vector(0, 0, -1), Vector(1, 1, 0), Vector(1, -1, 0), Vector(-1, 1, 0), Vector(-1, -1, 0), Vector(1, 0, 1), Vector(1, 0, -1), Vector(-1, 0, 1), Vector(-1, 0, -1), Vector(0, 1, 1), Vector(0, 1, -1), Vector(0, -1, 1), Vector(0, -1, -1), Vector(1, 1, 1), Vector(1, 1, -1), Vector(1, -1, 1), Vector(1, -1, -1), Vector(-1, 1, 1), Vector(-1, 1, -1), Vector(-1, -1, 1), Vector(-1, -1, -1),}
+local traceDirsWorld = {Vector(0, 0, -1), Vector(0, 0, 1), Vector(1, 0, 0), Vector(-1, 0, 0), Vector(0, 1, 0), Vector(0, -1, 0), Vector(1, 1, 0):GetNormalized(), Vector(1, -1, 0):GetNormalized(), Vector(-1, 1, 0):GetNormalized(), Vector(-1, -1, 0):GetNormalized(), Vector(1, 0, -1):GetNormalized(), Vector(-1, 0, -1):GetNormalized(), Vector(0, 1, -1):GetNormalized(), Vector(0, -1, -1):GetNormalized(),}
+local clientNudgeDirs = {Vector(0, 0, 1), Vector(0, 0, -1), Vector(1, 0, 0), Vector(-1, 0, 0), Vector(0, 1, 0), Vector(0, -1, 0), Vector(1, 1, 0):GetNormalized(), Vector(1, -1, 0):GetNormalized(), Vector(-1, 1, 0):GetNormalized(), Vector(-1, -1, 0):GetNormalized(),}
 local function CanClientFitAt(ply, pos, useDuck)
 	if not IsValid(ply) then return false end
 	local mins, maxs
@@ -497,6 +375,7 @@ local function CanClientFitAt(ply, pos, useDuck)
 	else
 		mins, maxs = ply:GetHull()
 	end
+
 	local tr = util.TraceHull({
 		start = pos,
 		endpos = pos,
@@ -511,22 +390,15 @@ end
 local function ResolveClientFeetPos(desiredPos, fallbackPos)
 	local ply = LocalPlayer()
 	if not IsValid(ply) then return desiredPos end
-	if CanClientFitAt(ply, desiredPos, true) or CanClientFitAt(ply, desiredPos, false) then
-		return desiredPos
-	end
-
+	if CanClientFitAt(ply, desiredPos, true) or CanClientFitAt(ply, desiredPos, false) then return desiredPos end
 	for radius = 2, 12, 2 do
 		for i = 1, #clientNudgeDirs do
 			local testPos = desiredPos + clientNudgeDirs[i] * radius
-			if CanClientFitAt(ply, testPos, true) or CanClientFitAt(ply, testPos, false) then
-				return testPos
-			end
+			if CanClientFitAt(ply, testPos, true) or CanClientFitAt(ply, testPos, false) then return testPos end
 		end
 	end
 
-	if fallbackPos and (CanClientFitAt(ply, fallbackPos, true) or CanClientFitAt(ply, fallbackPos, false)) then
-		return fallbackPos
-	end
+	if fallbackPos and (CanClientFitAt(ply, fallbackPos, true) or CanClientFitAt(ply, fallbackPos, false)) then return fallbackPos end
 	return desiredPos
 end
 
@@ -536,7 +408,6 @@ local function ResolveCameraOriginCollision(targetOrigin)
 	local hmd = g_VR.tracking.hmd
 	local ply = LocalPlayer()
 	if not hmd or not IsValid(ply) then return targetOrigin end
-
 	local localHmd = hmd.pos - g_VR.origin
 	local currentHmd = hmd.pos
 	local targetHmd = targetOrigin + localHmd
@@ -550,9 +421,8 @@ local function ResolveCameraOriginCollision(targetOrigin)
 		mask = MASK_SOLID,
 		filter = ply,
 	})
-	if tr.StartSolid or tr.AllSolid then
-		return g_VR.origin
-	end
+
+	if tr.StartSolid or tr.AllSolid then return g_VR.origin end
 	if tr.Hit then
 		local safeHmd = tr.HitPos + tr.HitNormal * (radius + padding)
 		return safeHmd - localHmd
@@ -584,47 +454,24 @@ local function IsClimbableHit(trace)
 
 	if ent:GetSolid() == SOLID_NONE then return false end
 	local cls = ent:GetClass() or ""
-
 	-- Doors: server must permit AND client must permit
 	local isDoor = cls == "func_door" or cls == "func_door_rotating" or cls == "prop_door_rotating"
-	if isDoor then
-		return GetServerConVarBool("sv_vrmod_brushclimb_allow_doors", false) and cvAllowDoors:GetBool()
-	end
-
+	if isDoor then return GetServerConVarBool("sv_vrmod_brushclimb_allow_doors", false) and cvAllowDoors:GetBool() end
 	-- func_pushable: server must permit AND client must permit
-	if cls == "func_pushable" then
-		return GetServerConVarBool("sv_vrmod_brushclimb_allow_pushable", false) and cvAllowPushable:GetBool()
-	end
-
+	if cls == "func_pushable" then return GetServerConVarBool("sv_vrmod_brushclimb_allow_pushable", false) and cvAllowPushable:GetBool() end
 	-- Toggleable brushes: server must permit AND client must permit
-	local isToggleable = cls == "func_button" or cls == "func_rot_button"
-		or cls == "momentary_rot_button" or cls == "momentary_door"
-	if isToggleable then
-		return GetServerConVarBool("sv_vrmod_brushclimb_allow_toggleable", false) and cvAllowToggleable:GetBool()
-	end
-
+	local isToggleable = cls == "func_button" or cls == "func_rot_button" or cls == "momentary_rot_button" or cls == "momentary_door"
+	if isToggleable then return GetServerConVarBool("sv_vrmod_brushclimb_allow_toggleable", false) and cvAllowToggleable:GetBool() end
 	-- Static props are safe for grabbing.
-	if cls == "prop_static" then
-		return true
-	end
+	if cls == "prop_static" then return true end
 	-- Dynamic props are allowed only when effectively static.
-	if cls == "prop_dynamic" then
-		return ent:GetMoveType() == MOVETYPE_NONE
-	end
+	if cls == "prop_dynamic" then return ent:GetMoveType() == MOVETYPE_NONE end
 	-- Physics props stay blocked (moving networked bodies desync badly).
-	if cls == "prop_physics" then
-		return false
-	end
-
+	if cls == "prop_physics" then return false end
 	if string.StartWith(cls, "func_") then return true end
-
 	local model = ent:GetModel()
 	if isstring(model) and string.sub(model, 1, 1) == "*" then return true end
-
-	if ent:GetMoveType() == MOVETYPE_NONE then
-		return true
-	end
-
+	if ent:GetMoveType() == MOVETYPE_NONE then return true end
 	return false
 end
 
@@ -632,14 +479,11 @@ local function IsLadderSurface(trace)
 	if not trace or not trace.Hit then return false end
 	if IsValid(trace.Entity) then
 		local cls = string.lower(trace.Entity:GetClass() or "")
-		if cls == "func_useableladder" or cls == "func_ladder" or cls == "func_climbable" then
-			return true
-		end
+		if cls == "func_useableladder" or cls == "func_ladder" or cls == "func_climbable" then return true end
 	end
+
 	local tex = trace.HitTexture and string.lower(trace.HitTexture) or ""
-	if tex ~= "" and string.find(tex, "ladder", 1, true) then
-		return true
-	end
+	if tex ~= "" and string.find(tex, "ladder", 1, true) then return true end
 	local samplePos = trace.HitPos + trace.HitNormal * 2
 	return bit.band(util.PointContents(samplePos), CONTENTS_LADDER) ~= 0
 end
@@ -649,12 +493,12 @@ end
 local function GetSurfaceType(normal)
 	if not normal then return "wall" end
 	local z = normal.z
-	local floorMin  = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_floor_normal_min", 0.85),  0,  1)
-	local ledgeMin  = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_ledge_normal_min", 0.55),  0,  1)
-	local ceilMax   = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_ceil_normal_max",  -0.55), -1, 0)
-	if z >= floorMin  then return "floor"   end
-	if z >= ledgeMin  then return "ledge"   end
-	if z <= ceilMax   then return "ceiling" end
+	local floorMin = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_floor_normal_min", 0.85), 0, 1)
+	local ledgeMin = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_ledge_normal_min", 0.55), 0, 1)
+	local ceilMax = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_ceil_normal_max", -0.55), -1, 0)
+	if z >= floorMin then return "floor" end
+	if z >= ledgeMin then return "ledge" end
+	if z <= ceilMax then return "ceiling" end
 	return "wall"
 end
 
@@ -668,19 +512,12 @@ end
 
 local function GetTraceSurfaceType(trace)
 	if not trace or not trace.Hit then return "wall" end
-
 	local surfaceType = GetSurfaceType(trace.HitNormal)
-	if surfaceType ~= "wall" then
-		return surfaceType
-	end
-
+	if surfaceType ~= "wall" then return surfaceType end
 	local floorMin = math.Clamp(GetServerConVarFloat("sv_vrmod_brushclimb_floor_normal_min", 0.85), 0, 1)
 	local wallFlat = Vector(trace.HitNormal.x, trace.HitNormal.y, 0)
-	if wallFlat:LengthSqr() < 0.0001 then
-		return surfaceType
-	end
+	if wallFlat:LengthSqr() < 0.0001 then return surfaceType end
 	wallFlat:Normalize()
-
 	-- If we hit a vertical face, probe just above and slightly inside it.
 	-- A walkable top face here means the wall hit is really a ledge/lip.
 	local probeStart = trace.HitPos + Vector(0, 0, 12) - wallFlat * 3
@@ -692,34 +529,17 @@ local function GetTraceSurfaceType(trace)
 		mask = MASK_SOLID,
 		filter = LocalPlayer(),
 	})
-	if not topTrace.Hit then
-		return surfaceType
-	end
-	if topTrace.HitNormal.z < floorMin then
-		return surfaceType
-	end
-	if topTrace.HitPos.z <= trace.HitPos.z + 2 then
-		return surfaceType
-	end
-	if topTrace.HitPos.z > trace.HitPos.z + 24 then
-		return surfaceType
-	end
+
+	if not topTrace.Hit then return surfaceType end
+	if topTrace.HitNormal.z < floorMin then return surfaceType end
+	if topTrace.HitPos.z <= trace.HitPos.z + 2 then return surfaceType end
+	if topTrace.HitPos.z > trace.HitPos.z + 24 then return surfaceType end
 	return "ledge"
 end
 
 local function GetPalmOffsetForHand(handId)
-	if handId == HAND_RIGHT then
-		return Vector(
-			cvPalmOffsetForwardRight:GetFloat(),
-			cvPalmOffsetRightRight:GetFloat(),
-			cvPalmOffsetUpRight:GetFloat()
-		)
-	end
-	return Vector(
-		cvPalmOffsetForward:GetFloat(),
-		cvPalmOffsetRight:GetFloat(),
-		cvPalmOffsetUp:GetFloat()
-	)
+	if handId == HAND_RIGHT then return Vector(cvPalmOffsetForwardRight:GetFloat(), cvPalmOffsetRightRight:GetFloat(), cvPalmOffsetUpRight:GetFloat()) end
+	return Vector(cvPalmOffsetForward:GetFloat(), cvPalmOffsetRight:GetFloat(), cvPalmOffsetUp:GetFloat())
 end
 
 local function GetHandCenterPos(handPose, handId)
@@ -750,16 +570,11 @@ local function TryDoorBash(handPose, handId)
 	if not cvDoorBashEnable:GetBool() then return end
 	if CurTime() < (state.nextDoorBashAt or 0) then return end
 	if not handPose or not handPose.vel then return end
-
 	local speed = handPose.vel:Length()
 	if speed < cvDoorBashSpeed:GetFloat() then return end
-
 	local startPos = GetHandCenterPos(handPose, handId)
 	local dir = handPose.vel:GetNormalized()
-	if dir:LengthSqr() < 0.001 then
-		dir = handPose.ang:Forward()
-	end
-
+	if dir:LengthSqr() < 0.001 then dir = handPose.ang:Forward() end
 	local trace = util.TraceLine({
 		start = startPos,
 		endpos = startPos + dir * cvDoorBashRange:GetFloat(),
@@ -768,7 +583,6 @@ local function TryDoorBash(handPose, handId)
 	})
 
 	if not trace.Hit or not IsDoorEntity(trace.Entity) then return end
-
 	state.nextDoorBashAt = CurTime() + cvDoorBashCooldown:GetFloat()
 	net.Start("vrmod_brush_doorbash")
 	net.WriteEntity(trace.Entity)
@@ -783,7 +597,6 @@ local UpdateSlide
 local GetTriggerDown
 local GetGripDown
 local AnyHandHolding
-
 local wallrunModule = include("vrmod_brush_climbing/client/wallrun.lua")
 if isfunction(wallrunModule) then
 	wallrunModule({
@@ -810,27 +623,19 @@ if isfunction(wallrunModule) then
 		cvLaunchMax = cvLaunchMax,
 		-- Defer function resolution so module init order cannot capture nil upvalues.
 		GetGripDown = function(...)
-			if isfunction(GetGripDown) then
-				return GetGripDown(...)
-			end
+			if isfunction(GetGripDown) then return GetGripDown(...) end
 			return false
 		end,
 		GetTriggerDown = function(...)
-			if isfunction(GetTriggerDown) then
-				return GetTriggerDown(...)
-			end
+			if isfunction(GetTriggerDown) then return GetTriggerDown(...) end
 			return false
 		end,
 		GetHandCenterPos = function(...)
-			if isfunction(GetHandCenterPos) then
-				return GetHandCenterPos(...)
-			end
+			if isfunction(GetHandCenterPos) then return GetHandCenterPos(...) end
 			return zeroVec
 		end,
 		AnyHandHolding = function(...)
-			if isfunction(AnyHandHolding) then
-				return AnyHandHolding(...)
-			end
+			if isfunction(AnyHandHolding) then return AnyHandHolding(...) end
 			return false
 		end,
 		PickSound = PickSound,
@@ -853,9 +658,7 @@ if isfunction(slideModule) then
 		slideLoopSoundPath = slideLoopSoundPath,
 		GetServerConVarFloat = GetServerConVarFloat,
 		AnyHandHolding = function(...)
-			if isfunction(AnyHandHolding) then
-				return AnyHandHolding(...)
-			end
+			if isfunction(AnyHandHolding) then return AnyHandHolding(...) end
 			return false
 		end,
 		PickSound = PickSound,
@@ -863,54 +666,42 @@ if isfunction(slideModule) then
 		setEnsureSlideLoopSound = function(fn) EnsureSlideLoopSound = fn end,
 		setUpdateSlide = function(fn) UpdateSlide = fn end,
 	})
-	end
-	StopSlideLoopSound = StopSlideLoopSound or function() end
-	EnsureSlideLoopSound = EnsureSlideLoopSound or function() end
-	StopWallRunSignal = StopWallRunSignal or function() end
-	UpdateWallRun = UpdateWallRun or function() end
-	UpdateSlide = UpdateSlide or function() end
+end
 
+StopSlideLoopSound = StopSlideLoopSound or function() end
+EnsureSlideLoopSound = EnsureSlideLoopSound or function() end
+StopWallRunSignal = StopWallRunSignal or function() end
+UpdateWallRun = UpdateWallRun or function() end
+UpdateSlide = UpdateSlide or function() end
 GetTriggerDown = function(handCfg)
 	local input = g_VR.input or {}
 	local boolKeys = handCfg.triggerBooleans or {}
 	local hasBool = false
 	for i = 1, #boolKeys do
 		local val = liveInput[boolKeys[i]]
-		if val == nil then
-			val = input[boolKeys[i]]
-		end
+		if val == nil then val = input[boolKeys[i]] end
 		if val ~= nil then
 			hasBool = true
-			if val then
-				return true
-			end
+			if val then return true end
 		end
 	end
-	if hasBool then
-		return false
-	end
 
+	if hasBool then return false end
 	local analogKeys = handCfg.triggerAnalogs or {}
 	local maxAnalog = nil
 	for i = 1, #analogKeys do
 		local val = input[analogKeys[i]]
-		if val ~= nil then
-			maxAnalog = math.max(maxAnalog or 0, val)
-		end
-	end
-	if maxAnalog ~= nil then
-		return maxAnalog > 0.6
+		if val ~= nil then maxAnalog = math.max(maxAnalog or 0, val) end
 	end
 
+	if maxAnalog ~= nil then return maxAnalog > 0.6 end
 	return input[handCfg.pickupAction] or false
 end
 
 GetGripDown = function(handCfg)
 	local input = g_VR.input or {}
 	local val = liveInput[handCfg.pickupAction]
-	if val ~= nil then
-		return val
-	end
+	if val ~= nil then return val end
 	return input[handCfg.pickupAction] or false
 end
 
@@ -919,13 +710,11 @@ local function WantsGrab(handId)
 	local gripDown = GetGripDown(handCfg)
 	local triggerDown = GetTriggerDown(handCfg)
 	local mode = cvBindMode:GetInt()
-
 	if mode == 1 then
 		return gripDown
 	elseif mode == 2 then
 		return triggerDown
 	end
-
 	return gripDown and triggerDown
 end
 
@@ -937,12 +726,11 @@ local function FindGrabSurface(handPose, handId)
 	local startPos = GetHandCenterPos(handPose, handId)
 	local traceRadius = 1.6
 	-- Surface type permissions: both server AND client must allow
-	local svWalls    = GetServerConVarBool("sv_vrmod_brushclimb_allow_walls",    true)
+	local svWalls = GetServerConVarBool("sv_vrmod_brushclimb_allow_walls", true)
 	local svCeilings = GetServerConVarBool("sv_vrmod_brushclimb_allow_ceilings", true)
-	local svLedges   = GetServerConVarBool("sv_vrmod_brushclimb_allow_ledges",   true)
-	local svFloors   = GetServerConVarBool("sv_vrmod_brushclimb_allow_floors",   true)
+	local svLedges = GetServerConVarBool("sv_vrmod_brushclimb_allow_ledges", true)
+	local svFloors = GetServerConVarBool("sv_vrmod_brushclimb_allow_floors", true)
 	local debugTraces = cvDebug:GetBool() and {} or nil
-
 	local function EvaluateTrace(dir)
 		local endPos = startPos + dir * range
 		local trace = util.TraceLine({
@@ -951,6 +739,7 @@ local function FindGrabSurface(handPose, handId)
 			mask = MASK_SOLID,
 			filter = LocalPlayer(),
 		})
+
 		if not trace.Hit then
 			trace = util.TraceHull({
 				start = startPos,
@@ -985,6 +774,7 @@ local function FindGrabSurface(handPose, handId)
 				else -- wall
 					surfaceAllowed = svWalls and cvAllowWalls:GetBool()
 				end
+
 				valid = IsClimbableHit(trace) and surfaceAllowed
 			end
 		end
@@ -1003,7 +793,7 @@ local function FindGrabSurface(handPose, handId)
 		if valid then
 			local priority = GetGrabSurfacePriority(surfType)
 			local dist = startPos:DistToSqr(trace.HitPos)
-			if priority > bestPriority or (priority == bestPriority and dist < bestDist) then
+			if priority > bestPriority or priority == bestPriority and dist < bestDist then
 				bestPriority = priority
 				bestDist = dist
 				bestTrace = trace
@@ -1015,35 +805,28 @@ local function FindGrabSurface(handPose, handId)
 		local dir = LocalToWorld(traceDirsLocal[i]:GetNormalized(), zeroAng, zeroVec, handPose.ang)
 		EvaluateTrace(dir)
 	end
+
 	for i = 1, #traceDirsWorld do
 		EvaluateTrace(traceDirsWorld[i])
 	end
-
 	return bestTrace, debugTraces
 end
 
-AnyHandHolding = function()
-	return state.hands[HAND_LEFT].holding or state.hands[HAND_RIGHT].holding
-end
-
+AnyHandHolding = function() return state.hands[HAND_LEFT].holding or state.hands[HAND_RIGHT].holding end
 local function TryArmSwingJump()
 	if not cvArmSwingJumpEnable:GetBool() then return end
 	if CurTime() < (state.nextArmSwingJumpAt or 0) then return end
 	if AnyHandHolding() or state.wallRunActive or state.slideActive then return end
-
 	local ply = LocalPlayer()
 	if not IsValid(ply) or not ply:IsOnGround() then return end
 	if not g_VR or not g_VR.tracking then return end
-
 	local leftPose = g_VR.tracking[hands[HAND_LEFT].poseName]
 	local rightPose = g_VR.tracking[hands[HAND_RIGHT].poseName]
 	if not leftPose or not rightPose or not leftPose.vel or not rightPose.vel then return end
-
 	local leftUp = math.max(0, leftPose.vel.z)
 	local rightUp = math.max(0, rightPose.vel.z)
 	local minSpeed = cvArmSwingJumpSpeed:GetFloat()
 	if leftUp < minSpeed or rightUp < minSpeed then return end
-
 	local avgUpSpeed = (leftUp + rightUp) * 0.5
 	local intensity = math.Clamp(avgUpSpeed / math.max(minSpeed, 1), 1, 1.8)
 	state.nextArmSwingJumpAt = CurTime() + cvArmSwingJumpCooldown:GetFloat()
@@ -1077,9 +860,7 @@ local function UpdateLocomotionState()
 		end
 	elseif state.locomotionStopped then
 		state.locomotionStopped = false
-		if vrmod.StartLocomotion then
-			vrmod.StartLocomotion()
-		end
+		if vrmod.StartLocomotion then vrmod.StartLocomotion() end
 		if g_VR and g_VR.tracking and g_VR.tracking.hmd then
 			local hmd = g_VR.tracking.hmd
 			local releasePos = hmd.pos + Angle(0, hmd.ang.yaw, 0):Forward() * -10
@@ -1093,7 +874,6 @@ end
 local function ReleaseHand(handId, doLaunch)
 	local handState = state.hands[handId]
 	if not handState.holding then return end
-
 	local releaseNormal = handState.anchorNormal and Vector(handState.anchorNormal.x, handState.anchorNormal.y, handState.anchorNormal.z) or nil
 	handState.holding = false
 	handState.anchorPos = nil
@@ -1103,7 +883,6 @@ local function ReleaseHand(handId, doLaunch)
 	handState.localHandAtGrab = nil
 	handState.grabStartTime = nil
 	handState.frozenHandAng = nil
-
 	local handCfg = hands[handId]
 	local pose = g_VR.tracking and g_VR.tracking[handCfg.poseName]
 	local handVel = pose and pose.vel or Vector()
@@ -1112,7 +891,6 @@ local function ReleaseHand(handId, doLaunch)
 	local maxSpeed = cvLaunchMax:GetFloat()
 	local fullyReleased = not AnyHandHolding()
 	local usedAssist = false
-
 	local speed = launch:Length()
 	local didLaunch = false
 	if doLaunch and fullyReleased then
@@ -1130,7 +908,8 @@ local function ReleaseHand(handId, doLaunch)
 					else
 						away = zeroVec
 					end
-					launch = launch + Vector(0, 0, assistPower) + away * (assistPower * 0.2)
+
+					launch = launch + Vector(0, 0, assistPower) + away * assistPower * 0.2
 					usedAssist = true
 				end
 			end
@@ -1151,22 +930,18 @@ local function ReleaseHand(handId, doLaunch)
 		end
 	end
 
-	if fullyReleased and didLaunch then
-		PickSound(releaseSounds)
-	end
+	if fullyReleased and didLaunch then PickSound(releaseSounds) end
 end
 
 local function GrabHand(handId)
 	local handCfg = hands[handId]
 	local pose = g_VR.tracking and g_VR.tracking[handCfg.poseName]
 	if not pose then return end
-
 	local trace, debugTraces = FindGrabSurface(pose, handId)
 	local handState = state.hands[handId]
 	handState.debugTraces = debugTraces
 	handState.debugBest = trace and trace.HitPos or nil
 	if not trace then return end
-
 	local inset = math.max(0, cvHandInset:GetFloat())
 	local anchorPos = trace.HitPos - trace.HitNormal * inset
 	local hadOtherHandHolding = false
@@ -1184,11 +959,9 @@ local function GrabHand(handId)
 	handState.grabStartTime = CurTime()
 	handState.frozenHandAng = Angle(pose.ang.pitch, pose.ang.yaw, pose.ang.roll)
 	handState.secondaryGrabBlend = hadOtherHandHolding
-
 	-- Smoothly pull from the grabbed hand pose to the wall anchor to avoid sudden snaps.
 	handState.originAtGrab = Vector(g_VR.origin.x, g_VR.origin.y, g_VR.origin.z)
 	handState.localHandAtGrab = handState.anchorStartPos - g_VR.origin
-
 	PickSound(climbSounds)
 end
 
@@ -1197,7 +970,6 @@ local function UpdateHeldMovement()
 	local weightSum = 0
 	local pushNormal = Vector(0, 0, 0)
 	local pushCount = 0
-
 	for handId, handCfg in pairs(hands) do
 		local handState = state.hands[handId]
 		if handState.holding and handState.anchorPos then
@@ -1211,13 +983,13 @@ local function UpdateHeldMovement()
 					blendT = math.Clamp((CurTime() - handState.grabStartTime) / state.attachLerpTime, 0, 1)
 					anchorPos = LerpVector(blendT, handState.anchorStartPos, handState.anchorPos)
 				end
+
 				local handWeight = 1
 				if handState.secondaryGrabBlend then
 					handWeight = math.max(0.001, blendT)
-					if blendT >= 1 then
-						handState.secondaryGrabBlend = false
-					end
+					if blendT >= 1 then handState.secondaryGrabBlend = false end
 				end
+
 				desiredOrigin = desiredOrigin + (anchorPos - localHandNow) * handWeight
 				weightSum = weightSum + handWeight
 				if handState.anchorNormal then
@@ -1229,20 +1001,17 @@ local function UpdateHeldMovement()
 	end
 
 	if weightSum <= 0 then return end
-
 	local targetOrigin = desiredOrigin / weightSum
 	if pushCount > 0 then
 		local avgNormal = pushNormal / pushCount
 		local lateral = Vector(avgNormal.x, avgNormal.y, 0)
 		local lateralLenSqr = lateral:LengthSqr()
 		local pushDist = math.max(0, cvWallPushDist:GetFloat())
-		if lateralLenSqr > 0.0001 and pushDist > 0 then
-			targetOrigin = targetOrigin + lateral:GetNormalized() * pushDist
-		end
+		if lateralLenSqr > 0.0001 and pushDist > 0 then targetOrigin = targetOrigin + lateral:GetNormalized() * pushDist end
 	end
+
 	targetOrigin = ResolveCameraOriginCollision(targetOrigin)
 	g_VR.origin = targetOrigin
-
 	local hmd = g_VR.tracking.hmd
 	if hmd and IsValid(LocalPlayer()) then
 		local feetPos = hmd.pos + Angle(0, hmd.ang.yaw, 0):Forward() * -10
@@ -1264,8 +1033,9 @@ local function UpdateHandPoses()
 					local t = math.Clamp((CurTime() - handState.grabStartTime) / state.attachLerpTime, 0, 1)
 					targetPos = LerpVector(t, handState.anchorStartPos, handState.anchorPos)
 				end
+
 				local trackingPose = g_VR.tracking and g_VR.tracking[handCfg.poseName]
-				local frozenAng = handState.frozenHandAng or (trackingPose and trackingPose.ang) or zeroAng
+				local frozenAng = handState.frozenHandAng or trackingPose and trackingPose.ang or zeroAng
 				local palmOffset = GetPalmOffsetForHand(handId)
 				local handRootPos = LocalToWorld(-palmOffset, zeroAng, targetPos, frozenAng)
 				setPose(handRootPos, frozenAng)
@@ -1288,10 +1058,9 @@ local function ResetState()
 		handState.frozenHandAng = nil
 		handState.nearWall = false
 		handState.secondaryGrabBlend = false
-		if handState.holding then
-			ReleaseHand(handId, false)
-		end
+		if handState.holding then ReleaseHand(handId, false) end
 	end
+
 	if state.wallRunActive then
 		state.wallRunActive = false
 		state.wallRunHand = nil
@@ -1302,6 +1071,7 @@ local function ResetState()
 		net.WriteVector(zeroVec)
 		net.SendToServer()
 	end
+
 	if state.slideActive then
 		state.slideActive = false
 		net.Start("vrmod_slide_sync")
@@ -1309,6 +1079,7 @@ local function ResetState()
 		net.WriteVector(zeroVec)
 		net.SendToServer()
 	end
+
 	StopSlideLoopSound()
 	UpdateLocomotionState()
 end
@@ -1320,12 +1091,10 @@ local function UpdateClimbing(renderPass)
 	local frameNum = FrameNumber()
 	if state.lastUpdateFrame == frameNum then return end
 	state.lastUpdateFrame = frameNum
-
 	for handId, handState in pairs(state.hands) do
 		local handCfg = hands[handId]
 		handState.gripDown = GetGripDown(handCfg)
 		handState.triggerDown = GetTriggerDown(handCfg)
-
 		if cvDebug:GetBool() and not handState.holding then
 			local pose = g_VR.tracking[handCfg.poseName]
 			if pose then
@@ -1338,16 +1107,14 @@ local function UpdateClimbing(renderPass)
 		local wantsGrab = WantsGrab(handId)
 		if wantsGrab and not handState.want then
 			GrabHand(handId)
-		elseif (not wantsGrab) and handState.want then
+		elseif not wantsGrab and handState.want then
 			ReleaseHand(handId, true)
 		end
-		handState.want = wantsGrab
 
+		handState.want = wantsGrab
 		if not handState.holding and not wantsGrab then
 			local pose = g_VR.tracking[handCfg.poseName]
-			if pose then
-				TryDoorBash(pose, handId)
-			end
+			if pose then TryDoorBash(pose, handId) end
 		end
 	end
 
@@ -1363,11 +1130,9 @@ local function DrawDebug()
 	if not state.running then return end
 	if not cvDebug:GetBool() then return end
 	if not g_VR or not g_VR.active or not g_VR.tracking then return end
-
 	render.SetColorMaterial()
 	local range = cvGrabDistance:GetFloat()
 	local half = Vector(range, range, range)
-
 	for handId, handCfg in pairs(hands) do
 		local handState = state.hands[handId]
 		local pose = g_VR.tracking[handCfg.poseName]
@@ -1377,18 +1142,14 @@ local function DrawDebug()
 			if handState.triggerDown then color = Color(255, 150, 40, 180) end
 			if handState.want then color = Color(80, 255, 120, 200) end
 			if handState.holding then color = Color(80, 180, 255, 220) end
-
 			render.DrawWireframeBox(pose.pos, Angle(), -half, half, color, true)
 			render.DrawWireframeSphere(pose.pos, range, 10, 10, color, true)
-
 			if handState.debugTraces then
 				for i = 1, #handState.debugTraces do
 					local tr = handState.debugTraces[i]
 					local lineColor = tr.valid and Color(0, 255, 0, 180) or Color(255, 0, 0, 90)
 					render.DrawLine(tr.start, tr.stop, lineColor, true)
-					if tr.hit then
-						render.DrawWireframeSphere(tr.hitPos, 0.8, 4, 4, lineColor, true)
-					end
+					if tr.hit then render.DrawWireframeSphere(tr.hitPos, 0.8, 4, 4, lineColor, true) end
 				end
 			end
 
@@ -1403,29 +1164,10 @@ local function DrawDebug()
 				local txtPos = pose.pos + Vector(0, 0, 4)
 				local txtAng = (viewPos - txtPos):Angle()
 				txtAng = Angle(0, txtAng.yaw + 90, 90)
-				local wrTag    = state.wallRunActive and "WR:ON" or (handState.nearWall and "WR:NEAR" or "WR:--")
+				local wrTag = state.wallRunActive and "WR:ON" or handState.nearWall and "WR:NEAR" or "WR:--"
 				local slideTag = state.slideActive and "SLD:ON" or "SLD:--"
 				cam.Start3D2D(txtPos, txtAng, 0.03)
-					draw.SimpleTextOutlined(
-						string.format(
-							"%s G:%d T:%d W:%d H:%d %s %s",
-							handId == HAND_LEFT and "L" or "R",
-							handState.gripDown and 1 or 0,
-							handState.triggerDown and 1 or 0,
-							handState.want and 1 or 0,
-							handState.holding and 1 or 0,
-							wrTag,
-							slideTag
-						),
-						"DermaLarge",
-						0,
-						0,
-						state.slideActive and Color(80, 200, 255, 235) or (state.wallRunActive and Color(255, 200, 50, 235) or Color(255, 255, 255, 235)),
-						TEXT_ALIGN_CENTER,
-						TEXT_ALIGN_CENTER,
-						1,
-						Color(0, 0, 0, 220)
-					)
+				draw.SimpleTextOutlined(string.format("%s G:%d T:%d W:%d H:%d %s %s", handId == HAND_LEFT and "L" or "R", handState.gripDown and 1 or 0, handState.triggerDown and 1 or 0, handState.want and 1 or 0, handState.holding and 1 or 0, wrTag, slideTag), "DermaLarge", 0, 0, state.slideActive and Color(80, 200, 255, 235) or state.wallRunActive and Color(255, 200, 50, 235) or Color(255, 255, 255, 235), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0, 220))
 				cam.End3D2D()
 			end
 		end
@@ -1447,6 +1189,7 @@ local function StopClimbing()
 		stopPos = ResolveClientFeetPos(stopPos, LocalPlayer():GetPos())
 		SyncServerPos(stopPos, false, true)
 	end
+
 	hook.Remove("VRMod_PreRender", "vrmod_brush_climbing")
 	hook.Remove("VRMod_Input", "vrmod_brush_climbing_inputcache")
 	hook.Remove("PostDrawTranslucentRenderables", "vrmod_brush_climbing_debug")
@@ -1463,10 +1206,9 @@ local function StartClimbing()
 	for k, v in pairs(g_VR.input or {}) do
 		liveInput[k] = v
 	end
+
 	hook.Add("VRMod_PreRender", "vrmod_brush_climbing", UpdateClimbing)
-	hook.Add("VRMod_Input", "vrmod_brush_climbing_inputcache", function(action, pressed)
-		liveInput[action] = pressed
-	end)
+	hook.Add("VRMod_Input", "vrmod_brush_climbing_inputcache", function(action, pressed) liveInput[action] = pressed end)
 	hook.Add("PostDrawTranslucentRenderables", "vrmod_brush_climbing_debug", function(depth, sky)
 		if depth or sky then return end
 		DrawDebug()
@@ -1485,9 +1227,7 @@ end)
 
 cvars.AddChangeCallback("vrmod_brushclimb_enable", function(_, _, newValue)
 	if tobool(newValue) then
-		if g_VR and g_VR.active then
-			StartClimbing()
-		end
+		if g_VR and g_VR.active then StartClimbing() end
 		return
 	end
 
@@ -1496,54 +1236,43 @@ end, "vrmod_brush_climbing_enable")
 
 local function BuildPresetControls(form)
 	if not IsValid(form) then return end
-
 	local row = vgui.Create("DPanel")
 	row:SetTall(74)
 	row.Paint = function() end
-
 	local label = vgui.Create("DLabel", row)
 	label:SetPos(2, 2)
 	label:SetSize(120, 20)
 	label:SetText("Preset:")
 	label:SetColor(Color(0, 0, 0))
-
 	local combo = vgui.Create("DComboBox", row)
 	combo:SetPos(56, 0)
 	combo:SetSize(330, 22)
-
 	local btnApply = vgui.Create("DButton", row)
 	btnApply:SetText("Apply")
 	btnApply:SetPos(2, 30)
 	btnApply:SetSize(58, 20)
-
 	local btnSave = vgui.Create("DButton", row)
 	btnSave:SetText("Save")
 	btnSave:SetPos(64, 30)
 	btnSave:SetSize(58, 20)
-
 	local btnSaveAs = vgui.Create("DButton", row)
 	btnSaveAs:SetText("Save As...")
 	btnSaveAs:SetPos(126, 30)
 	btnSaveAs:SetSize(84, 20)
-
 	local btnDelete = vgui.Create("DButton", row)
 	btnDelete:SetText("Delete")
 	btnDelete:SetPos(214, 30)
 	btnDelete:SetSize(58, 20)
-
 	local btnReset = vgui.Create("DButton", row)
 	btnReset:SetText("Reset")
 	btnReset:SetPos(276, 30)
 	btnReset:SetSize(58, 20)
 	btnReset:SetTooltip("Apply addon default preset.")
-
 	local function getSelectedPresetName()
 		local selectedId = combo:GetSelectedID()
 		if selectedId then
 			local optionData = combo:GetOptionData(selectedId)
-			if isstring(optionData) and optionData ~= "" then
-				return optionData
-			end
+			if isstring(optionData) and optionData ~= "" then return optionData end
 		end
 		return SanitizePresetName(combo:GetText())
 	end
@@ -1557,22 +1286,13 @@ local function BuildPresetControls(form)
 			local presetName = names[i]
 			local suffix = IsBuiltinPreset(presetName) and " [built-in]" or ""
 			local newId = combo:AddChoice(presetName .. suffix, presetName)
-			if presetName == old then
-				selectedId = newId
-			end
+			if presetName == old then selectedId = newId end
 		end
 
 		local selected = SanitizePresetName(cvSelectedPreset:GetString())
-		if selected == "" or not GetPresetValues(selected) then
-			selected = defaultPresetName
-		end
-		if selected == "" or not GetPresetValues(selected) then
-			selected = old
-		end
-		if selected == "" or not GetPresetValues(selected) then
-			selected = GetPresetNames()[1] or ""
-		end
-
+		if selected == "" or not GetPresetValues(selected) then selected = defaultPresetName end
+		if selected == "" or not GetPresetValues(selected) then selected = old end
+		if selected == "" or not GetPresetValues(selected) then selected = GetPresetNames()[1] or "" end
 		if selected ~= "" then
 			if selectedId == nil then
 				for i = 1, #names do
@@ -1582,6 +1302,7 @@ local function BuildPresetControls(form)
 					end
 				end
 			end
+
 			if selectedId ~= nil then
 				combo._syncing = true
 				combo:ChooseOptionID(selectedId)
@@ -1603,11 +1324,13 @@ local function BuildPresetControls(form)
 			NotifyPreset("Pick a preset first.", NOTIFY_ERROR)
 			return
 		end
+
 		if not ApplyPresetByName(selectedName) then
 			NotifyPreset("Preset not found.", NOTIFY_ERROR)
 			fillPresets()
 			return
 		end
+
 		NotifyPreset("Applied preset: " .. selectedName, NOTIFY_GENERIC)
 	end
 
@@ -1617,6 +1340,7 @@ local function BuildPresetControls(form)
 			NotifyPreset("Pick a preset first.", NOTIFY_ERROR)
 			return
 		end
+
 		if IsBuiltinPreset(selectedName) then
 			NotifyPreset("Built-in preset is read-only. Use Save As...", NOTIFY_HINT)
 			return
@@ -1634,21 +1358,17 @@ local function BuildPresetControls(form)
 	end
 
 	btnSaveAs.DoClick = function()
-		Derma_StringRequest(
-			"Save preset",
-			"Preset name:",
-			SanitizePresetName(combo:GetText()),
-			function(text)
-				local ok, result = SaveCustomPreset(text, CaptureCurrentPresetValues())
-				if not ok then
-					NotifyPreset(result, NOTIFY_ERROR)
-					return
-				end
-				cvSelectedPreset:SetString(result)
-				fillPresets()
-				NotifyPreset("Saved preset: " .. result, NOTIFY_GENERIC)
+		Derma_StringRequest("Save preset", "Preset name:", SanitizePresetName(combo:GetText()), function(text)
+			local ok, result = SaveCustomPreset(text, CaptureCurrentPresetValues())
+			if not ok then
+				NotifyPreset(result, NOTIFY_ERROR)
+				return
 			end
-		)
+
+			cvSelectedPreset:SetString(result)
+			fillPresets()
+			NotifyPreset("Saved preset: " .. result, NOTIFY_GENERIC)
+		end)
 	end
 
 	btnDelete.DoClick = function()
@@ -1657,21 +1377,17 @@ local function BuildPresetControls(form)
 			NotifyPreset("Pick a preset first.", NOTIFY_ERROR)
 			return
 		end
-		Derma_Query(
-			"Delete preset '" .. selectedName .. "'?",
-			"Delete preset",
-			"Delete",
-			function()
-				local ok, err = DeleteCustomPreset(selectedName)
-				if not ok then
-					NotifyPreset(err, NOTIFY_ERROR)
-					return
-				end
-				fillPresets()
-				NotifyPreset("Deleted preset: " .. selectedName, NOTIFY_GENERIC)
-			end,
-			"Cancel"
-		)
+
+		Derma_Query("Delete preset '" .. selectedName .. "'?", "Delete preset", "Delete", function()
+			local ok, err = DeleteCustomPreset(selectedName)
+			if not ok then
+				NotifyPreset(err, NOTIFY_ERROR)
+				return
+			end
+
+			fillPresets()
+			NotifyPreset("Deleted preset: " .. selectedName, NOTIFY_GENERIC)
+		end, "Cancel")
 	end
 
 	btnReset.DoClick = function()
@@ -1690,7 +1406,6 @@ end
 
 local function BuildTabMain(form)
 	if not IsValid(form) then return end
-
 	BuildPresetControls(form)
 	form:ControlHelp("")
 	form:Help("[Client] Core toggles")
@@ -1702,38 +1417,35 @@ local function BuildTabMain(form)
 	form:CheckBox("[Client] Play climbing sounds", "vrmod_brushclimb_sounds")
 	form:CheckBox("[Client] Play wallrun sounds", "vrmod_wallrun_sounds")
 	form:CheckBox("[Client] Play slide sounds", "vrmod_slide_sounds")
-
 	local s = form:NumSlider("[Client] Arm-swing jump speed", "vrmod_brushclimb_armswing_jump_speed", 50, 1200, 0)
 	s:SetToolTip("Required upward hand speed for each hand. Jump triggers only on two-hand upward swing.")
 	s = form:NumSlider("[Client] Door bash speed", "vrmod_brushclimb_doorbash_speed", 0, 1200, 0)
 	s:SetToolTip("Minimum hand speed required to punch-open a door.")
 	s = form:NumSlider("[Client] Climb Assist strength", "vrmod_brushclimb_assist_strength", 0, 260, 0)
 	s:SetToolTip("Subtle extra release boost when climbing from wall/ledge.")
-
 	form:ControlHelp("")
 	form:Help("[Server] Main runtime parameters (admin can edit)")
-
 	local function AddMainServerCheckbox(labelText, cvarName, tooltipText)
 		local row = vgui.Create("DCheckBoxLabel")
 		row:SetText("[Server] " .. labelText)
 		row:SetValue(GetServerConVarBool(cvarName, false) and 1 or 0)
 		row:SizeToContents()
-		if tooltipText and tooltipText ~= "" then
-			row:SetTooltip(tooltipText)
-		end
+		if tooltipText and tooltipText ~= "" then row:SetTooltip(tooltipText) end
 		row.OnChange = function(_, val)
 			if row._syncing then return end
 			if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then return end
 			RunConsoleCommand("vrmod_brushclimb_admin_set", cvarName, val and "1" or "0")
 		end
+
 		row.Think = function(self)
 			local desired = GetServerConVarBool(cvarName, false) and 1 or 0
-			if self:GetChecked() ~= (desired == 1) then
+			if self:GetChecked() ~= desired == 1 then
 				self._syncing = true
 				self:SetValue(desired)
 				self._syncing = false
 			end
 		end
+
 		form:AddItem(row)
 	end
 
@@ -1745,9 +1457,7 @@ end
 
 local function BuildTabClimbing(form)
 	if not IsValid(form) then return end
-
 	form:CheckBox("Enable VRModClimbing", "vrmod_brushclimb_enable")
-
 	local bindPanel = vgui.Create("DPanel")
 	bindPanel:SetSize(300, 30)
 	bindPanel.Paint = function() end
@@ -1770,8 +1480,8 @@ local function BuildTabClimbing(form)
 			self:ChooseOptionID(mode + 1)
 		end
 	end
-	form:AddItem(bindPanel)
 
+	form:AddItem(bindPanel)
 	form:ControlHelp("Physics")
 	local tmp = form:NumSlider("Grab distance", "vrmod_brushclimb_grab_distance", 4, 48, 0)
 	tmp:SetToolTip("How far from your hand a brush can be grabbed.")
@@ -1787,49 +1497,36 @@ local function BuildTabClimbing(form)
 	tmp:SetToolTip("Keeps your body slightly away from walls while holding.")
 	tmp = form:CheckBox("Camera anti-clip while climbing", "vrmod_brushclimb_camera_collision")
 	tmp:SetToolTip("Pushes camera away from brushes while you are holding a climb point.")
-
 	form:ControlHelp("")
 	form:ControlHelp("Palm Offsets")
-	form:NumSlider("Left palm offset forward",  "vrmod_brushclimb_palm_offset_forward",       -8, 8, 2)
-	form:NumSlider("Left palm offset right",    "vrmod_brushclimb_palm_offset_right",          -8, 8, 2)
-	form:NumSlider("Left palm offset up",       "vrmod_brushclimb_palm_offset_up",             -8, 8, 2)
-	form:NumSlider("Right palm offset forward", "vrmod_brushclimb_palm_offset_forward_right",  -8, 8, 2)
-	form:NumSlider("Right palm offset right",   "vrmod_brushclimb_palm_offset_right_right",    -8, 8, 2)
-	form:NumSlider("Right palm offset up",      "vrmod_brushclimb_palm_offset_up_right",       -8, 8, 2)
-
+	form:NumSlider("Left palm offset forward", "vrmod_brushclimb_palm_offset_forward", -8, 8, 2)
+	form:NumSlider("Left palm offset right", "vrmod_brushclimb_palm_offset_right", -8, 8, 2)
+	form:NumSlider("Left palm offset up", "vrmod_brushclimb_palm_offset_up", -8, 8, 2)
+	form:NumSlider("Right palm offset forward", "vrmod_brushclimb_palm_offset_forward_right", -8, 8, 2)
+	form:NumSlider("Right palm offset right", "vrmod_brushclimb_palm_offset_right_right", -8, 8, 2)
+	form:NumSlider("Right palm offset up", "vrmod_brushclimb_palm_offset_up_right", -8, 8, 2)
 	form:ControlHelp("")
 	form:ControlHelp("Surface Filters  (server may restrict further)")
-	form:CheckBox("Allow grabbing walls",              "vrmod_brushclimb_allow_walls")
-		:SetToolTip("Allow grabbing near-vertical surfaces.")
-	form:CheckBox("Allow grabbing ceilings",           "vrmod_brushclimb_allow_ceilings")
-		:SetToolTip("Allow grabbing downward-facing surfaces.")
-	form:CheckBox("Allow grabbing ledges",             "vrmod_brushclimb_allow_ledges")
-		:SetToolTip("Allow grabbing slanted upward surfaces between wall and floor.")
-	form:CheckBox("Allow grabbing floors",             "vrmod_brushclimb_allow_floors")
-		:SetToolTip("Allow grabbing nearly-flat upward surfaces (floors).")
-
+	form:CheckBox("Allow grabbing walls", "vrmod_brushclimb_allow_walls"):SetToolTip("Allow grabbing near-vertical surfaces.")
+	form:CheckBox("Allow grabbing ceilings", "vrmod_brushclimb_allow_ceilings"):SetToolTip("Allow grabbing downward-facing surfaces.")
+	form:CheckBox("Allow grabbing ledges", "vrmod_brushclimb_allow_ledges"):SetToolTip("Allow grabbing slanted upward surfaces between wall and floor.")
+	form:CheckBox("Allow grabbing floors", "vrmod_brushclimb_allow_floors"):SetToolTip("Allow grabbing nearly-flat upward surfaces (floors).")
 	form:ControlHelp("")
 	form:ControlHelp("Entity Filters  (server may restrict further)")
-	form:CheckBox("Allow grabbing doors",              "vrmod_brushclimb_allow_doors")
-		:SetToolTip("Allow func_door, func_door_rotating and prop_door_rotating to be grabbed.")
-	form:CheckBox("Allow grabbing pushables",          "vrmod_brushclimb_allow_pushable")
-		:SetToolTip("Allow func_pushable entities to be grabbed.")
-	form:CheckBox("Allow grabbing toggleable brushes", "vrmod_brushclimb_allow_toggleable")
-		:SetToolTip("Allow func_button, func_rot_button, momentary_rot_button and momentary_door to be grabbed.")
-	form:CheckBox("Allow grabbing ladders",            "vrmod_brushclimb_allow_ladders")
-		:SetToolTip("Allow grabbing ladder surfaces (func_ladder, func_climbable, CONTENTS_LADDER). Ladders always bypass surface-type filters when enabled.")
-
+	form:CheckBox("Allow grabbing doors", "vrmod_brushclimb_allow_doors"):SetToolTip("Allow func_door, func_door_rotating and prop_door_rotating to be grabbed.")
+	form:CheckBox("Allow grabbing pushables", "vrmod_brushclimb_allow_pushable"):SetToolTip("Allow func_pushable entities to be grabbed.")
+	form:CheckBox("Allow grabbing toggleable brushes", "vrmod_brushclimb_allow_toggleable"):SetToolTip("Allow func_button, func_rot_button, momentary_rot_button and momentary_door to be grabbed.")
+	form:CheckBox("Allow grabbing ladders", "vrmod_brushclimb_allow_ladders"):SetToolTip("Allow grabbing ladder surfaces (func_ladder, func_climbable, CONTENTS_LADDER). Ladders always bypass surface-type filters when enabled.")
 	form:ControlHelp("")
 	form:ControlHelp("Debug")
-	form:CheckBox("Play climbing sounds",           "vrmod_brushclimb_sounds")
-	form:NumSlider("Climb sound volume",            "vrmod_brushclimb_sound_volume", 0, 1, 2)
+	form:CheckBox("Play climbing sounds", "vrmod_brushclimb_sounds")
+	form:NumSlider("Climb sound volume", "vrmod_brushclimb_sound_volume", 0, 1, 2)
 	form:CheckBox("Debug draw (grab cube + traces)", "vrmod_brushclimb_debug")
-	form:CheckBox("Debug text above hands",          "vrmod_brushclimb_debug_text")
+	form:CheckBox("Debug text above hands", "vrmod_brushclimb_debug_text")
 end
 
 local function BuildTabWallRun(form)
 	if not IsValid(form) then return end
-
 	local function AddServerLiveSlider(labelText, cvarName, minValue, maxValue, decimals, tooltipText)
 		local row = vgui.Create("DNumSlider")
 		row:SetText("[Server] " .. labelText)
@@ -1837,14 +1534,13 @@ local function BuildTabWallRun(form)
 		row:SetMax(maxValue)
 		row:SetDecimals(decimals or 0)
 		row:SetValue(GetServerConVarFloat(cvarName, minValue))
-		if tooltipText and tooltipText ~= "" then
-			row:SetTooltip(tooltipText)
-		end
+		if tooltipText and tooltipText ~= "" then row:SetTooltip(tooltipText) end
 		row.OnValueChanged = function(_, val)
 			if row._syncing then return end
 			if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then return end
 			RunConsoleCommand("vrmod_brushclimb_admin_set", cvarName, tostring(val))
 		end
+
 		row.Think = function(self)
 			local current = GetServerConVarFloat(cvarName, minValue)
 			if math.abs((self:GetValue() or 0) - current) > 0.001 then
@@ -1853,6 +1549,7 @@ local function BuildTabWallRun(form)
 				self._syncing = false
 			end
 		end
+
 		form:AddItem(row)
 	end
 
@@ -1877,8 +1574,8 @@ local function BuildTabWallRun(form)
 			self:ChooseOptionID(mode + 1)
 		end
 	end
-	form:AddItem(wrBindPanel)
 
+	form:AddItem(wrBindPanel)
 	local wr = form:NumSlider("Hand range", "vrmod_wallrun_hand_range", 4, 48, 0)
 	wr:SetToolTip("How close your hand must be to a wall to trigger wall running.")
 	wr = form:NumSlider("Cooldown", "vrmod_wallrun_cooldown", 0, 5, 1)
@@ -1898,7 +1595,6 @@ end
 
 local function BuildTabSlide(form)
 	if not IsValid(form) then return end
-
 	form:CheckBox("Enable sliding", "vrmod_slide_enable")
 	local sh = form:NumSlider("Slide head height threshold", "vrmod_slide_head_height", 4, 120, 0)
 	sh:SetToolTip("HMD height above feet (units) at which you count as low enough to slide. Sliding only activates while in VR.")
@@ -1911,7 +1607,6 @@ local function BuildTabbedSettings(parent)
 	local sheet = vgui.Create("DPropertySheet", parent)
 	sheet:Dock(FILL)
 	sheet:DockMargin(2, 2, 2, 2)
-
 	local function MakeTab(name, buildFn)
 		local panel = vgui.Create("DPanel", sheet)
 		panel:Dock(FILL)
@@ -1927,14 +1622,13 @@ local function BuildTabbedSettings(parent)
 		sheet:AddSheet(name, panel)
 	end
 
-	MakeTab("Main",      BuildTabMain)
-	MakeTab("Climbing",  BuildTabClimbing)
-	MakeTab("Wall Run",  BuildTabWallRun)
-	MakeTab("Slide",     BuildTabSlide)
+	MakeTab("Main", BuildTabMain)
+	MakeTab("Climbing", BuildTabClimbing)
+	MakeTab("Wall Run", BuildTabWallRun)
+	MakeTab("Slide", BuildTabSlide)
 end
 
 local climbSettingsFrame = nil
-
 local function OpenClimbSettingsWindow()
 	if IsValid(climbSettingsFrame) then
 		climbSettingsFrame:MakePopup()
@@ -1948,7 +1642,6 @@ local function OpenClimbSettingsWindow()
 	frame:MakePopup()
 	frame:Center()
 	climbSettingsFrame = frame
-
 	function frame:OnRemove()
 		climbSettingsFrame = nil
 	end
@@ -1956,10 +1649,7 @@ local function OpenClimbSettingsWindow()
 	BuildTabbedSettings(frame)
 end
 
-concommand.Add("vrmod_brushclimb_menu", function()
-	OpenClimbSettingsWindow()
-end)
-
+concommand.Add("vrmod_brushclimb_menu", function() OpenClimbSettingsWindow() end)
 hook.Add("VRMod_Menu", "vrmod_brush_climbing_menu", function(frame)
 	if IsValid(frame.DPropertySheet) then
 		local panel = vgui.Create("DPanel", frame.DPropertySheet)
@@ -1983,9 +1673,7 @@ end)
 
 local function EnsureQuickMenuItem()
 	if not vrmod or not vrmod.AddInGameMenuItem then return end
-	vrmod.AddInGameMenuItem("VRClimb", 5, 3, function()
-		RunConsoleCommand("vrmod_brushclimb_menu")
-	end)
+	vrmod.AddInGameMenuItem("VRClimb", 5, 3, function() RunConsoleCommand("vrmod_brushclimb_menu") end)
 end
 
 hook.Add("VRMod_Start", "vrmod_brush_climbing_menu_button", function(ply)
@@ -1994,35 +1682,31 @@ hook.Add("VRMod_Start", "vrmod_brush_climbing_menu_button", function(ply)
 end)
 
 timer.Simple(0, EnsureQuickMenuItem)
-
 local function AddAdminCheckbox(form, labelText, cvarName, tooltipText)
 	local mirroredClientCvarName = MIRRORED_PERMISSION_SERVER_CVARS[cvarName]
 	local row = vgui.Create("DCheckBoxLabel")
 	row:SetText(labelText)
 	row:SetValue(GetServerConVarBool(cvarName, false) and 1 or 0)
 	row:SizeToContents()
-	if tooltipText and tooltipText ~= "" then
-		row:SetTooltip(tooltipText)
-	end
+	if tooltipText and tooltipText ~= "" then row:SetTooltip(tooltipText) end
 	row.OnChange = function(_, val)
 		if row._syncing then return end
 		if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then return end
-		if mirroredClientCvarName then
-			SetMirroredClientPermission(mirroredClientCvarName, val)
-		end
+		if mirroredClientCvarName then SetMirroredClientPermission(mirroredClientCvarName, val) end
 		RunConsoleCommand("vrmod_brushclimb_admin_set", cvarName, val and "1" or "0")
 	end
+
 	row.Think = function(self)
 		local desired = GetServerConVarBool(cvarName, false) and 1 or 0
-		if self:GetChecked() ~= (desired == 1) then
+		if self:GetChecked() ~= desired == 1 then
 			self._syncing = true
 			self:SetValue(desired)
 			self._syncing = false
 		end
-		if mirroredClientCvarName and IsValid(LocalPlayer()) and LocalPlayer():IsAdmin() then
-			SetMirroredClientPermission(mirroredClientCvarName, desired == 1)
-		end
+
+		if mirroredClientCvarName and IsValid(LocalPlayer()) and LocalPlayer():IsAdmin() then SetMirroredClientPermission(mirroredClientCvarName, desired == 1) end
 	end
+
 	form:AddItem(row)
 end
 
@@ -2033,14 +1717,13 @@ local function AddAdminSlider(form, labelText, cvarName, minValue, maxValue, dec
 	row:SetMax(maxValue)
 	row:SetDecimals(decimals or 0)
 	row:SetValue(GetServerConVarFloat(cvarName, minValue))
-	if tooltipText and tooltipText ~= "" then
-		row:SetTooltip(tooltipText)
-	end
+	if tooltipText and tooltipText ~= "" then row:SetTooltip(tooltipText) end
 	row.OnValueChanged = function(_, val)
 		if row._syncing then return end
 		if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then return end
 		RunConsoleCommand("vrmod_brushclimb_admin_set", cvarName, tostring(val))
 	end
+
 	row.Think = function(self)
 		local current = GetServerConVarFloat(cvarName, minValue)
 		if math.abs((self:GetValue() or 0) - current) > 0.001 then
@@ -2049,12 +1732,12 @@ local function AddAdminSlider(form, labelText, cvarName, minValue, maxValue, dec
 			self._syncing = false
 		end
 	end
+
 	form:AddItem(row)
 end
 
 hook.Add("PopulateToolMenu", "vrmod_brush_climbing_admin_utilities", function()
 	spawnmenu.AddToolCategory("Utilities", "VRModClimbing", "VRModClimbing")
-
 	-- Climbing tab
 	spawnmenu.AddToolMenuOption("Utilities", "VRModClimbing", "VRModClimbing_Climbing", "Climbing", "", "", function(panel)
 		panel:ClearControls()
@@ -2064,36 +1747,34 @@ hook.Add("PopulateToolMenu", "vrmod_brush_climbing_admin_utilities", function()
 		form.Header:SetVisible(false)
 		form.Paint = function() end
 		BuildTabClimbing(form)
-
 		form:ControlHelp("")
 		if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then
 			form:Help("Server parameters can be changed only by admins.")
 		else
 			form:Help("Admin: Surface Permissions (set the ceiling for all clients)")
 		end
-		AddAdminCheckbox(form, "Allow walls",              "sv_vrmod_brushclimb_allow_walls",       "Permit clients to grab wall surfaces.")
-		AddAdminCheckbox(form, "Allow ceilings",           "sv_vrmod_brushclimb_allow_ceilings",    "Permit clients to grab ceiling surfaces.")
-		AddAdminCheckbox(form, "Allow ledges",             "sv_vrmod_brushclimb_allow_ledges",      "Permit clients to grab ledge surfaces.")
-		AddAdminCheckbox(form, "Allow floors",             "sv_vrmod_brushclimb_allow_floors",      "Permit clients to grab floor surfaces.")
-		AddAdminCheckbox(form, "Allow doors",              "sv_vrmod_brushclimb_allow_doors",       "Permit clients to grab door entities.")
-		AddAdminCheckbox(form, "Allow pushables",          "sv_vrmod_brushclimb_allow_pushable",    "Permit clients to grab func_pushable entities.")
-		AddAdminCheckbox(form, "Allow toggleable brushes", "sv_vrmod_brushclimb_allow_toggleable",  "Permit clients to grab func_button, etc.")
 
+		AddAdminCheckbox(form, "Allow walls", "sv_vrmod_brushclimb_allow_walls", "Permit clients to grab wall surfaces.")
+		AddAdminCheckbox(form, "Allow ceilings", "sv_vrmod_brushclimb_allow_ceilings", "Permit clients to grab ceiling surfaces.")
+		AddAdminCheckbox(form, "Allow ledges", "sv_vrmod_brushclimb_allow_ledges", "Permit clients to grab ledge surfaces.")
+		AddAdminCheckbox(form, "Allow floors", "sv_vrmod_brushclimb_allow_floors", "Permit clients to grab floor surfaces.")
+		AddAdminCheckbox(form, "Allow doors", "sv_vrmod_brushclimb_allow_doors", "Permit clients to grab door entities.")
+		AddAdminCheckbox(form, "Allow pushables", "sv_vrmod_brushclimb_allow_pushable", "Permit clients to grab func_pushable entities.")
+		AddAdminCheckbox(form, "Allow toggleable brushes", "sv_vrmod_brushclimb_allow_toggleable", "Permit clients to grab func_button, etc.")
 		form:ControlHelp("")
 		form:Help("Admin: Behaviour")
-		AddAdminCheckbox(form, "Reduce collider while climbing", "sv_vrmod_brushclimb_reduce_collider",  "Keep duck hull while climbing and after release.")
-		AddAdminCheckbox(form, "Enable door bash",               "sv_vrmod_doorbash_enable",             "Allow opening doors with high-speed hand impacts.")
-		AddAdminSlider  (form, "Door bash cooldown",             "sv_vrmod_doorbash_open_cooldown",  0.03, 1.0, 2, "Minimum time between door bash activations.")
-		AddAdminSlider  (form, "Door bash impact volume",        "sv_vrmod_doorbash_sound_volume",    0.0, 1.0, 2, "Volume of the extra impact sound on door bash.")
-		AddAdminCheckbox(form, "Enable arm-swing jump",          "sv_vrmod_armswing_jump_enable",       "Allow jumping from upward two-hand swings.")
-		AddAdminSlider  (form, "Arm-swing jump power",           "sv_vrmod_armswing_jump_power",      80, 500, 0, "Vertical jump force applied by arm swing.")
-		AddAdminSlider  (form, "Arm-swing forward boost",        "sv_vrmod_armswing_forward_boost",    0, 300, 0, "Extra forward speed added by arm swing jump.")
-		AddAdminSlider  (form, "Arm-swing jump cooldown",        "sv_vrmod_armswing_jump_cooldown", 0.05, 1.0, 2, "Minimum delay between arm-swing jumps.")
-
+		AddAdminCheckbox(form, "Reduce collider while climbing", "sv_vrmod_brushclimb_reduce_collider", "Keep duck hull while climbing and after release.")
+		AddAdminCheckbox(form, "Enable door bash", "sv_vrmod_doorbash_enable", "Allow opening doors with high-speed hand impacts.")
+		AddAdminSlider(form, "Door bash cooldown", "sv_vrmod_doorbash_open_cooldown", 0.03, 1.0, 2, "Minimum time between door bash activations.")
+		AddAdminSlider(form, "Door bash impact volume", "sv_vrmod_doorbash_sound_volume", 0.0, 1.0, 2, "Volume of the extra impact sound on door bash.")
+		AddAdminCheckbox(form, "Enable arm-swing jump", "sv_vrmod_armswing_jump_enable", "Allow jumping from upward two-hand swings.")
+		AddAdminSlider(form, "Arm-swing jump power", "sv_vrmod_armswing_jump_power", 80, 500, 0, "Vertical jump force applied by arm swing.")
+		AddAdminSlider(form, "Arm-swing forward boost", "sv_vrmod_armswing_forward_boost", 0, 300, 0, "Extra forward speed added by arm swing jump.")
+		AddAdminSlider(form, "Arm-swing jump cooldown", "sv_vrmod_armswing_jump_cooldown", 0.05, 1.0, 2, "Minimum delay between arm-swing jumps.")
 		form:ControlHelp("")
 		form:Help("Admin: Surface Thresholds")
-		AddAdminSlider(form, "Ledge normal min Z",  "sv_vrmod_brushclimb_ledge_normal_min", 0,  1,  2, "Minimum normal Z for a surface to be a ledge (vs wall).")
-		AddAdminSlider(form, "Floor normal min Z",  "sv_vrmod_brushclimb_floor_normal_min", 0,  1,  2, "Minimum normal Z for a surface to be a floor (vs ledge).")
+		AddAdminSlider(form, "Ledge normal min Z", "sv_vrmod_brushclimb_ledge_normal_min", 0, 1, 2, "Minimum normal Z for a surface to be a ledge (vs wall).")
+		AddAdminSlider(form, "Floor normal min Z", "sv_vrmod_brushclimb_floor_normal_min", 0, 1, 2, "Minimum normal Z for a surface to be a floor (vs ledge).")
 		AddAdminSlider(form, "Ceiling normal max Z", "sv_vrmod_brushclimb_ceil_normal_max", -1, 0, 2, "Maximum normal Z for a surface to be a ceiling (vs wall).")
 		panel:AddItem(form)
 	end)
@@ -2107,22 +1788,22 @@ hook.Add("PopulateToolMenu", "vrmod_brush_climbing_admin_utilities", function()
 		form.Header:SetVisible(false)
 		form.Paint = function() end
 		BuildTabWallRun(form)
-
 		form:ControlHelp("")
 		if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then
 			form:Help("Server parameters can be changed only by admins.")
 		else
 			form:Help("Admin server parameters (replicated to clients).")
 		end
-		AddAdminSlider(form, "Jump force",            "sv_vrmod_wallrun_jump_force",    50,  800, 0, "Launch force when jumping off wall.")
-		AddAdminSlider(form, "Wall push force",       "sv_vrmod_wallrun_wall_force",    10,  400, 0, "Force keeping player pressed into wall.")
-		AddAdminSlider(form, "Free time (seconds)",   "sv_vrmod_wallrun_free_time",      0,    5, 1, "Seconds before gravity starts building.")
-		AddAdminSlider(form, "Fall rate",             "sv_vrmod_wallrun_fall_rate",      0,  500, 0, "Downward acceleration after free time.")
-		AddAdminSlider(form, "Max fall speed",        "sv_vrmod_wallrun_max_fall_speed", 0,  800, 0, "Maximum downward speed on wall.")
-		AddAdminSlider(form, "Wallrun speed",         "sv_vrmod_wallrun_speed",         80, 1000, 0, "Target horizontal speed while wallrunning.")
-		AddAdminSlider(form, "Wall bounce force",     "sv_vrmod_wallrun_bounce_force",   0,  900, 0, "Extra push away from wall on wallrun jump.")
-		AddAdminSlider(form, "Speed transfer grace",  "sv_vrmod_wallrun_speed_grace",    0,    1, 2, "Seconds to blend direction on wall contact.")
-		AddAdminSlider(form, "Min jump contact time", "sv_vrmod_wallrun_min_jump_time",  0,    1, 2, "Min seconds on wall before wallrun jump fires.")
+
+		AddAdminSlider(form, "Jump force", "sv_vrmod_wallrun_jump_force", 50, 800, 0, "Launch force when jumping off wall.")
+		AddAdminSlider(form, "Wall push force", "sv_vrmod_wallrun_wall_force", 10, 400, 0, "Force keeping player pressed into wall.")
+		AddAdminSlider(form, "Free time (seconds)", "sv_vrmod_wallrun_free_time", 0, 5, 1, "Seconds before gravity starts building.")
+		AddAdminSlider(form, "Fall rate", "sv_vrmod_wallrun_fall_rate", 0, 500, 0, "Downward acceleration after free time.")
+		AddAdminSlider(form, "Max fall speed", "sv_vrmod_wallrun_max_fall_speed", 0, 800, 0, "Maximum downward speed on wall.")
+		AddAdminSlider(form, "Wallrun speed", "sv_vrmod_wallrun_speed", 80, 1000, 0, "Target horizontal speed while wallrunning.")
+		AddAdminSlider(form, "Wall bounce force", "sv_vrmod_wallrun_bounce_force", 0, 900, 0, "Extra push away from wall on wallrun jump.")
+		AddAdminSlider(form, "Speed transfer grace", "sv_vrmod_wallrun_speed_grace", 0, 1, 2, "Seconds to blend direction on wall contact.")
+		AddAdminSlider(form, "Min jump contact time", "sv_vrmod_wallrun_min_jump_time", 0, 1, 2, "Min seconds on wall before wallrun jump fires.")
 		panel:AddItem(form)
 	end)
 
@@ -2135,25 +1816,21 @@ hook.Add("PopulateToolMenu", "vrmod_brush_climbing_admin_utilities", function()
 		form.Header:SetVisible(false)
 		form.Paint = function() end
 		BuildTabSlide(form)
-
 		form:ControlHelp("")
 		if not IsValid(LocalPlayer()) or not LocalPlayer():IsAdmin() then
 			form:Help("Server parameters can be changed only by admins.")
 		else
 			form:Help("Admin server parameters (replicated to clients).")
 		end
-		AddAdminCheckbox(form, "Enable sliding",    "sv_vrmod_slide_enable",      "Allow players to slide when crouching at speed. VR only.")
-		AddAdminSlider  (form, "Min entry speed",   "sv_vrmod_slide_min_speed",   0, 800, 0, "Minimum horizontal speed to start a slide.")
-		AddAdminSlider  (form, "Entry boost",       "sv_vrmod_slide_entry_boost", 0, 600, 0, "Flat speed bonus at slide start.")
-		AddAdminSlider  (form, "Slide friction",    "sv_vrmod_slide_friction",    0, 600, 0, "Horizontal deceleration (units/s^2).")
-		AddAdminSlider  (form, "Stop speed",        "sv_vrmod_slide_stop_speed",  0, 400, 0, "Speed below which slide ends.")
-		AddAdminSlider  (form, "Air-landing boost", "sv_vrmod_slide_air_boost",   0, 600, 0, "Extra speed when landing into a slide from air.")
+
+		AddAdminCheckbox(form, "Enable sliding", "sv_vrmod_slide_enable", "Allow players to slide when crouching at speed. VR only.")
+		AddAdminSlider(form, "Min entry speed", "sv_vrmod_slide_min_speed", 0, 800, 0, "Minimum horizontal speed to start a slide.")
+		AddAdminSlider(form, "Entry boost", "sv_vrmod_slide_entry_boost", 0, 600, 0, "Flat speed bonus at slide start.")
+		AddAdminSlider(form, "Slide friction", "sv_vrmod_slide_friction", 0, 600, 0, "Horizontal deceleration (units/s^2).")
+		AddAdminSlider(form, "Stop speed", "sv_vrmod_slide_stop_speed", 0, 400, 0, "Speed below which slide ends.")
+		AddAdminSlider(form, "Air-landing boost", "sv_vrmod_slide_air_boost", 0, 600, 0, "Extra speed when landing into a slide from air.")
 		panel:AddItem(form)
 	end)
 end)
 
-if g_VR and g_VR.active then
-	timer.Simple(0, StartClimbing)
-end
-
-
+if g_VR and g_VR.active then timer.Simple(0, StartClimbing) end

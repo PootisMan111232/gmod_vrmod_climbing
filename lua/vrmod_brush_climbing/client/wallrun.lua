@@ -1,6 +1,5 @@
 return function(ctx)
 	if not istable(ctx) then return end
-
 	local state = ctx.state
 	local hands = ctx.hands
 	local HAND_LEFT = ctx.HAND_LEFT
@@ -10,7 +9,6 @@ return function(ctx)
 	local zeroAng = ctx.zeroAng
 	local wallrunSounds = ctx.wallrunSounds or {}
 	local releaseSounds = ctx.releaseSounds or {}
-
 	local cvUseSounds = ctx.cvUseSounds
 	local cvWallrunBindMode = ctx.cvWallrunBindMode
 	local cvWallrunCooldown = ctx.cvWallrunCooldown
@@ -23,13 +21,11 @@ return function(ctx)
 	local cvLaunchMult = ctx.cvLaunchMult
 	local cvLaunchMin = ctx.cvLaunchMin
 	local cvLaunchMax = ctx.cvLaunchMax
-
 	local GetGripDown = ctx.GetGripDown
 	local GetTriggerDown = ctx.GetTriggerDown
 	local GetHandCenterPos = ctx.GetHandCenterPos
 	local AnyHandHolding = ctx.AnyHandHolding
 	local PickSound = ctx.PickSound
-
 	local function IsLookingAlongWall(normal)
 		local ply = LocalPlayer()
 		if not IsValid(ply) or not normal then return false end
@@ -62,11 +58,8 @@ return function(ctx)
 				mask = MASK_SOLID,
 				filter = LocalPlayer(),
 			})
-			if trace.Hit and math.abs(trace.HitNormal.z) < 0.3 then
-				if trace.HitWorld or (IsValid(trace.Entity) and trace.Entity:GetSolid() ~= SOLID_NONE) then
-					return true, trace.HitNormal
-				end
-			end
+
+			if trace.Hit and math.abs(trace.HitNormal.z) < 0.3 then if trace.HitWorld or IsValid(trace.Entity) and trace.Entity:GetSolid() ~= SOLID_NONE then return true, trace.HitNormal end end
 		end
 		return false, nil
 	end
@@ -88,7 +81,6 @@ return function(ctx)
 		state.wallRunActive = false
 		state.wallRunCooldownUntil = CurTime() + cvWallrunCooldown:GetFloat()
 		state.nextWallRunSoundAt = 0
-
 		local wallHand = state.wallRunHand
 		state.wallRunHand = nil
 		if wallHand and g_VR and g_VR.tracking then
@@ -101,9 +93,7 @@ return function(ctx)
 				local minSpeed = cvLaunchMin:GetFloat()
 				local maxSpeed = cvLaunchMax:GetFloat()
 				if speed > minSpeed then
-					if speed > maxSpeed then
-						launch = launch:GetNormalized() * maxSpeed
-					end
+					if speed > maxSpeed then launch = launch:GetNormalized() * maxSpeed end
 					net.Start("vrmod_brush_climb_launch")
 					net.WriteVector(launch)
 					net.SendToServer()
@@ -122,30 +112,27 @@ return function(ctx)
 		if not g_VR or not g_VR.tracking then return end
 		local ply = LocalPlayer()
 		if not IsValid(ply) then return end
-
 		local onGround = ply:IsOnGround()
-		if onGround and not state.wallRunWasOnGround then
-			state.wallRunCooldownUntil = 0
-		end
-
+		if onGround and not state.wallRunWasOnGround then state.wallRunCooldownUntil = 0 end
 		if not onGround and not state.wallRunActive then
 			local regen = cvWallrunAirRegen:GetFloat()
-			if regen > 0 and state.wallRunCooldownUntil > CurTime() then
-				state.wallRunCooldownUntil = state.wallRunCooldownUntil - regen * FrameTime()
-			end
+			if regen > 0 and state.wallRunCooldownUntil > CurTime() then state.wallRunCooldownUntil = state.wallRunCooldownUntil - regen * FrameTime() end
 		end
 
 		state.wallRunWasOnGround = onGround
-
 		if AnyHandHolding() then
 			StopWallRunSignal()
-			for _, hs in pairs(state.hands) do hs.nearWall = false end
+			for _, hs in pairs(state.hands) do
+				hs.nearWall = false
+			end
 			return
 		end
 
 		if not WallRunInputHeld() then
 			StopWallRunSignal()
-			for _, hs in pairs(state.hands) do hs.nearWall = false end
+			for _, hs in pairs(state.hands) do
+				hs.nearWall = false
+			end
 			return
 		end
 
@@ -185,10 +172,6 @@ return function(ctx)
 		end
 	end
 
-	if isfunction(ctx.setStopWallRunSignal) then
-		ctx.setStopWallRunSignal(StopWallRunSignal)
-	end
-	if isfunction(ctx.setUpdateWallRun) then
-		ctx.setUpdateWallRun(UpdateWallRun)
-	end
+	if isfunction(ctx.setStopWallRunSignal) then ctx.setStopWallRunSignal(StopWallRunSignal) end
+	if isfunction(ctx.setUpdateWallRun) then ctx.setUpdateWallRun(UpdateWallRun) end
 end
