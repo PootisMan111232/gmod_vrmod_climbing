@@ -54,7 +54,7 @@ local defaultPresetName = isstring(presetModule.defaultPresetName) and string.Tr
 local cvSelectedPreset = CreateClientConVar("vrmod_brushclimb_selected_preset", defaultPresetName, true, false, "Last selected local VRModClimbing preset")
 local PRESET_DATA_DIR = "vrmod_climbing"
 local LEGACY_PRESET_DATA_PATH = "vrmod_brushclimb/presets.json"
-local PRESET_CVARS = {"vrmod_brushclimb_bind_mode", "vrmod_brushclimb_enable", "vrmod_brushclimb_grab_distance", "vrmod_brushclimb_launch_mult", "vrmod_brushclimb_launch_min", "vrmod_brushclimb_launch_max", "vrmod_brushclimb_sounds", "vrmod_brushclimb_sound_volume", "vrmod_brushclimb_debug", "vrmod_brushclimb_debug_text", "vrmod_brushclimb_hand_inset", "vrmod_brushclimb_wall_push_dist", "vrmod_brushclimb_camera_collision", "vrmod_brushclimb_palm_offset_forward", "vrmod_brushclimb_palm_offset_right", "vrmod_brushclimb_palm_offset_up", "vrmod_brushclimb_palm_offset_forward_right", "vrmod_brushclimb_palm_offset_right_right", "vrmod_brushclimb_palm_offset_up_right", "vrmod_wallrun_hand_range", "vrmod_wallrun_bind_mode", "vrmod_wallrun_cooldown", "vrmod_wallrun_air_regen", "vrmod_wallrun_look_max_dot", "vrmod_wallrun_sounds", "vrmod_wallrun_sound_volume", "vrmod_wallrun_sound_interval", "vrmod_brushclimb_allow_walls", "vrmod_brushclimb_allow_ceilings", "vrmod_brushclimb_allow_ledges", "vrmod_brushclimb_allow_floors", "vrmod_brushclimb_allow_doors", "vrmod_brushclimb_allow_pushable", "vrmod_brushclimb_allow_toggleable", "vrmod_brushclimb_allow_ladders", "vrmod_slide_enable", "vrmod_slide_head_height", "vrmod_slide_sounds", "vrmod_slide_sound_volume", "vrmod_brushclimb_assist_enable", "vrmod_brushclimb_assist_strength", "vrmod_brushclimb_doorbash_enable", "vrmod_brushclimb_doorbash_speed", "vrmod_brushclimb_doorbash_range", "vrmod_brushclimb_doorbash_cooldown", "vrmod_brushclimb_armswing_jump_enable", "vrmod_brushclimb_armswing_jump_speed", "vrmod_brushclimb_armswing_jump_cooldown", }
+local PRESET_CVARS = {"vrmod_brushclimb_bind_mode", "vrmod_brushclimb_enable", "vrmod_brushclimb_grab_distance", "vrmod_brushclimb_launch_mult", "vrmod_brushclimb_launch_min", "vrmod_brushclimb_launch_max", "vrmod_brushclimb_sounds", "vrmod_brushclimb_sound_volume", "vrmod_brushclimb_debug", "vrmod_brushclimb_debug_text", "vrmod_brushclimb_hand_inset", "vrmod_brushclimb_wall_push_dist", "vrmod_brushclimb_camera_collision", "vrmod_brushclimb_palm_offset_forward", "vrmod_brushclimb_palm_offset_right", "vrmod_brushclimb_palm_offset_up", "vrmod_brushclimb_palm_offset_forward_right", "vrmod_brushclimb_palm_offset_right_right", "vrmod_brushclimb_palm_offset_up_right", "vrmod_wallrun_hand_range", "vrmod_wallrun_bind_mode", "vrmod_wallrun_cooldown", "vrmod_wallrun_air_regen", "vrmod_wallrun_look_max_dot", "vrmod_wallrun_sounds", "vrmod_wallrun_sound_volume", "vrmod_wallrun_sound_interval", "vrmod_brushclimb_allow_walls", "vrmod_brushclimb_allow_ceilings", "vrmod_brushclimb_allow_ledges", "vrmod_brushclimb_allow_floors", "vrmod_brushclimb_allow_doors", "vrmod_brushclimb_allow_pushable", "vrmod_brushclimb_allow_toggleable", "vrmod_brushclimb_allow_ladders", "vrmod_slide_enable", "vrmod_slide_head_height", "vrmod_slide_sounds", "vrmod_slide_sound_volume", "vrmod_brushclimb_assist_enable", "vrmod_brushclimb_assist_strength", "vrmod_brushclimb_doorbash_enable", "vrmod_brushclimb_doorbash_speed", "vrmod_brushclimb_doorbash_range", "vrmod_brushclimb_doorbash_cooldown", "vrmod_brushclimb_armswing_jump_enable", "vrmod_brushclimb_armswing_jump_speed", "vrmod_brushclimb_armswing_jump_cooldown",}
 local presetStore = {
 	custom = {},
 }
@@ -354,9 +354,19 @@ local liveInput = {}
 -- Global API
 function vrmod.climbing.GetState()
 	return {
-		state = state,
-		liveInput = liveInput
+		holding = state.hands[HAND_LEFT].holding or state.hands[HAND_RIGHT].holding,
+		wallrunning = state.wallRunActive == true,
+		sliding = state.slideActive == true,
+		running = state.running == true
 	}
+end
+
+function vrmod.climbing.IsHoldingLeft()
+	return state.hands[HAND_LEFT].holding == true
+end
+
+function vrmod.climbing.IsHoldingRight()
+	return state.hands[HAND_RIGHT].holding == true
 end
 
 local climbSounds = {"vrclimb/handstep1.wav", "vrclimb/handstep2.wav", "vrclimb/handstep3.wav", "vrclimb/handstep4.wav",}
