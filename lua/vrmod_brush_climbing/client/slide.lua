@@ -80,10 +80,36 @@ return function(ctx)
 		local flatVel = Vector(plyVel.x, plyVel.y, 0)
 		local flatSpeed = flatVel:Length()
 		local minSlideSpeed = GetServerConVarFloat("sv_vrmod_slide_min_speed", 90)
-		local maxSlideSpeed = GetServerConVarFloat("sv_vrmod_slide_max_speed", 400) -- new max speed
+		local maxSlideSpeed = GetServerConVarFloat("sv_vrmod_slide_max_speed", 400)
 		-- Check if player is crouched below slide height
 		local isLow = hmd.pos.z - g_VR.origin.z <= cvSlideHeadHeight:GetFloat()
 		local shouldSlide = isLow and flatSpeed >= minSlideSpeed
+		-- Trace downward under player for ground info
+		local traceDown = {
+			start = ply:GetPos() + Vector(0, 0, 10),
+			endpos = ply:GetPos() - Vector(0, 0, 50),
+			filter = ply
+		}
+
+		local trGround = util.TraceLine(traceDown)
+		local currentGroundZ = trGround.HitPos.z
+		local groundNormal = trGround.HitNormal
+		-- Prevent sliding uphill / stairs using forward ground check
+		if flatVel:LengthSqr() > 0.001 then
+			local dirNorm = flatVel:GetNormalized()
+			local forwardCheckDist = 20
+			local forwardTrace = {
+				start = ply:GetPos() + Vector(0, 0, 10),
+				endpos = ply:GetPos() + dirNorm * forwardCheckDist - Vector(0, 0, 50),
+				filter = ply
+			}
+
+			local ftr = util.TraceLine(forwardTrace)
+			if ftr.Hit and ftr.HitPos.z - currentGroundZ > 1 then
+				shouldSlide = false -- uphill / stair ahead
+			end
+		end
+
 		-- Update slide state and sounds
 		if shouldSlide ~= state.slideActive then
 			state.slideActive = shouldSlide
@@ -95,16 +121,24 @@ return function(ctx)
 			end
 		end
 
-		-- Apply sliding movement and friction
+		-- Apply sliding movement, friction, and downhill acceleration
 		if state.slideActive then
-			-- Clamp velocity to maxSlideSpeed
-			if flatSpeed > maxSlideSpeed then
+			-- Downhill slope acceleration
+			local slopeAccel = 50 -- tweak this value
+			local slopeDir = Vector(-groundNormal.x, -groundNormal.y, 0)
+			if slopeDir:LengthSqr() > 0.001 then
+				slopeDir:Normalize()
+				flatVel = flatVel + slopeDir * slopeAccel * FrameTime()
+			end
+
+			-- Clamp to maxSlideSpeed
+			if flatVel:Length() > maxSlideSpeed then
 				flatVel:Normalize()
 				flatVel = flatVel * maxSlideSpeed
 			end
 
-			-- Apply friction scaled by FrameTime
-			local frictionPerSecond = GetServerConVarFloat("sv_vrmod_slide_friction") -- units/sec per second, adjust for your scale
+			-- Apply friction
+			local frictionPerSecond = GetServerConVarFloat("sv_vrmod_slide_friction")
 			local frictionThisFrame = frictionPerSecond * FrameTime()
 			local newSpeed = math.max(flatVel:Length() - frictionThisFrame, 0)
 			if newSpeed < minSlideSpeed then
@@ -118,7 +152,6 @@ return function(ctx)
 				flatVel = flatVel * newSpeed
 			end
 
-			-- Set new velocity
 			ply:SetLocalVelocity(flatVel + Vector(0, 0, plyVel.z))
 		end
 
