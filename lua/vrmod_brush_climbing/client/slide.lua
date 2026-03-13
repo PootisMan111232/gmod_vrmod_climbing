@@ -94,7 +94,7 @@ return function(ctx)
 		local trGround = util.TraceLine(traceDown)
 		local currentGroundZ = trGround.HitPos.z
 		local groundNormal = trGround.HitNormal
-		-- Prevent sliding uphill / stairs using forward ground check
+		-- Forward ground check to prevent stairs/uphill
 		if flatVel:LengthSqr() > 0.001 then
 			local dirNorm = flatVel:GetNormalized()
 			local forwardCheckDist = 20
@@ -110,6 +110,13 @@ return function(ctx)
 			end
 		end
 
+		-- Initialize previous ground height for zDiff
+		if not state.lastGroundZ then state.lastGroundZ = ply:GetPos().z end
+		-- Player vertical movement detection for gentle uphill
+		local zDiff = ply:GetPos().z - state.lastGroundZ
+		state.lastGroundZ = ply:GetPos().z
+		local uphillThreshold = 0.5 -- units per frame, tweak for sensitivity
+		if zDiff > uphillThreshold then shouldSlide = false end
 		-- Update slide state and sounds
 		if shouldSlide ~= state.slideActive then
 			state.slideActive = shouldSlide
@@ -121,17 +128,23 @@ return function(ctx)
 			end
 		end
 
-		-- Apply sliding movement, friction, and downhill acceleration
+		-- Apply sliding movement, friction, and slope acceleration
 		if state.slideActive then
-			-- Downhill slope acceleration
-			local slopeAccel = 50 -- tweak this value
-			local slopeDir = Vector(-groundNormal.x, -groundNormal.y, 0)
-			if slopeDir:LengthSqr() > 0.001 then
-				slopeDir:Normalize()
-				flatVel = flatVel + slopeDir * slopeAccel * FrameTime()
+			-- Compute slope along movement direction
+			if flatVel:LengthSqr() > 0.001 then
+				local moveDir = flatVel:GetNormalized()
+				local slopeAlongMove = -groundNormal:Dot(Vector(moveDir.x, moveDir.y, 0))
+				local slopeAccel = 50 -- tweak for stronger/weaker slope
+				if slopeAlongMove > 0 then
+					-- Downhill: accelerate
+					flatVel = flatVel + moveDir * slopeAccel * slopeAlongMove * FrameTime()
+				elseif slopeAlongMove < 0 then
+					-- Uphill: decelerate
+					flatVel = flatVel + moveDir * slopeAccel * slopeAlongMove * FrameTime() -- slopeAlongMove negative
+				end
 			end
 
-			-- Clamp to maxSlideSpeed
+			-- Clamp to max speed
 			if flatVel:Length() > maxSlideSpeed then
 				flatVel:Normalize()
 				flatVel = flatVel * maxSlideSpeed
